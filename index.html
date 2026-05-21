@@ -508,7 +508,13 @@ function drawHUD(){
   ctx.fillStyle='#4ade80';ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.fillText(`LEVEL ${lvl}`,w/2,32);
   const bx2=w/2-55,by2=40,bw2=110,bh2=8;
   ctx.fillStyle='rgba(255,255,255,0.2)';ctx.beginPath();rr(bx2,by2,bw2,bh2,4);ctx.fill();
-  if(lp>0){ctx.fillStyle='#4ade80';ctx.beginPath();rr(bx2,by2,(lp/10)*bw2,bh2,4);ctx.fill();}
+  if(lp>0){
+    // Yeşilden kırmızıya renk geçişi
+    const r=Math.round(255*(lp/10));
+    const g=Math.round(200*(1-lp/10));
+    ctx.fillStyle=`rgb(${r},${g},40)`;
+    ctx.beginPath();rr(bx2,by2,(lp/10)*bw2,bh2,4);ctx.fill();
+  }
   ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='10px Arial';ctx.fillText(`${lp}/10`,w/2,55);
   const lw=lives*28+18;ctx.fillStyle='rgba(0,0,0,0.5)';ctx.beginPath();rr(w-lw-14,14,lw,36,18);ctx.fill();
   ctx.font='22px Arial';ctx.textAlign='left';ctx.fillText('❤️'.repeat(Math.max(0,lives)),w-lw-2,38);
