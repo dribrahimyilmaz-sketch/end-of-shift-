@@ -22,6 +22,35 @@ let AC;
 function beep(f,t,d,v=0.2){try{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,AC.currentTime);g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+d);o.start();o.stop(AC.currentTime+d);}catch(e){}}
 const SFX={grow:()=>beep(200,'sawtooth',0.04,0.07),fall:()=>beep(160,'sine',0.3),land:()=>beep(420,'sine',0.12),perfect:()=>{beep(660,'sine',0.1,0.3);setTimeout(()=>beep(880,'sine',0.15,0.3),80)},fail:()=>{beep(200,'sawtooth',0.15);setTimeout(()=>beep(110,'sawtooth',0.35),120)},score:()=>beep(520,'triangle',0.1),lvl:()=>{beep(523,'sine',0.12,0.3);setTimeout(()=>beep(659,'sine',0.12,0.3),120);setTimeout(()=>beep(784,'sine',0.2,0.3),240)}};
 
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+const SB_URL='https://vriammjvjuyyrevbsvwf.supabase.co';
+const SB_KEY='sb_publishable_GSxI0zjTs9rYn_9LiEesPQ_ajbzbiak';
+
+async function saveScore(name,score,level){
+  try{
+    await fetch(`${SB_URL}/rest/v1/scores`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`},
+      body:JSON.stringify({name,score,level})
+    });
+  }catch(e){console.log('Score save error:',e);}
+}
+
+async function getLeaderboard(){
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/scores?select=name,score,level&order=score.desc&limit=10`,{
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
+    });
+    return await res.json();
+  }catch(e){return [];}
+}
+
+let playerName='';
+let leaderboard=[];
+let showLeaderboard=false;
+let nameInputActive=false;
+let nameInput='';
+
 let hi=parseInt(localStorage.getItem('kd_hi')||'0');
 function saveHi(){if(score>hi){hi=score;localStorage.setItem('kd_hi',hi);}}
 
@@ -61,6 +90,16 @@ function mkSnow(){snow=Array.from({length:70},()=>({x:Math.random()*w,y:Math.ran
 
 function init(){
   resize();
+  playerName=localStorage.getItem('eos_name')||'';
+  if(!playerName){nameInputActive=true;nameInput='';
+    state='WAITING';score=0;lives=3;camX=tCamX=0;elapsed=0;gtimer=0;perf=false;pressing=false;
+    stick={len:0,ang:0};gone=false;floats=[];lvl=1;lp=0;pc=0;
+    skyA='morning';skyB='morning';skyT=1;
+    plats=[{x:40,w:130,last:false}];buildLvl();ci=0;
+    const p0=plats[0];pl={x:p0.x+p0.w-24,y:gr,vy:0};
+    mkClouds();mkRain();mkSnow();
+    return;
+  }
   scene='HOSPITAL';sceneT=0;introDocX=0;
   state='WAITING';score=0;lives=3;camX=tCamX=0;elapsed=0;gtimer=0;perf=false;pressing=false;
   stick={len:0,ang:0};gone=false;floats=[];lvl=1;lp=0;pc=0;
@@ -114,7 +153,13 @@ function update(dt){
     pl.vy+=2160*dt;pl.y+=pl.vy*dt;pl.x+=120*dt;
     if(pl.y>h+80){
       lives--;SFX.fail();saveHi();
-      if(lives<=0){state='GAME_OVER';}
+      if(lives<=0){
+    state='GAME_OVER';
+    // Skoru kaydet
+    if(playerName) saveScore(playerName,score,lvl);
+    // Leaderboard'u çek
+    getLeaderboard().then(data=>{leaderboard=data||[];});
+  }
       else{lp=0;const si=(lvl-1)*10;ci=Math.max(0,si);const p=plats[ci];pl.x=p.x+p.w-24;pl.y=gr;pl.vy=0;camX=tCamX=Math.max(0,p.x+p.w-w*0.35);stick.len=0;stick.ang=0;gone=false;
         // Death message
         deathMsg=DEATH_MSGS[Math.min(lvl-1,DEATH_MSGS.length-1)];
@@ -522,25 +567,92 @@ function drawHUD(){
   ctx.font='18px Arial';ctx.textAlign='right';ctx.fillText(wIcon,w-16,h-16);
 }
 
+function drawNameInput(){
+  if(!nameInputActive)return;
+  ctx.fillStyle='rgba(10,8,25,0.95)';ctx.fillRect(0,0,w,h);
+  // Logo
+  ctx.fillStyle='#e9c46a';ctx.font='bold 28px Arial';ctx.textAlign='center';
+  ctx.fillText('END OF SHIFT',w/2,h*0.25);
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='14px Arial';
+  ctx.fillText('Enter your name to start',w/2,h*0.25+30);
+
+  // Input kutusu
+  const bw=280,bh=44,bx=w/2-bw/2,by=h/2-bh/2;
+  ctx.fillStyle='rgba(255,255,255,0.08)';ctx.beginPath();rr(bx,by,bw,bh,10);ctx.fill();
+  ctx.strokeStyle=nameInput.length>0?'#4ade80':'#555';ctx.lineWidth=2;
+  ctx.beginPath();rr(bx,by,bw,bh,10);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='18px Arial';ctx.textAlign='center';
+  ctx.fillText(nameInput+(Math.sin(elapsed*4)>0?'|':''),w/2,by+bh/2+6);
+
+  // Placeholder
+  if(!nameInput){ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='16px Arial';ctx.fillText('Your name...',w/2,by+bh/2+6);}
+
+  // Start butonu
+  if(nameInput.length>=2){
+    const bbw=160,bbh=42,bbx=w/2-bbw/2,bby=by+bh+20;
+    ctx.fillStyle='#4ade80';ctx.beginPath();rr(bbx,bby,bbw,bbh,10);ctx.fill();
+    ctx.fillStyle='#000';ctx.font='bold 16px Arial';ctx.textAlign='center';
+    ctx.fillText('▶  START',w/2,bby+bbh/2+6);
+  }
+
+  // Leaderboard butonu
+  const lbw=160,lbh=36,lbx=w/2-lbw/2,lby=h*0.78;
+  ctx.fillStyle='rgba(255,255,255,0.08)';ctx.beginPath();rr(lbx,lby,lbw,lbh,10);ctx.fill();
+  ctx.strokeStyle='#e9c46a';ctx.lineWidth=1;ctx.beginPath();rr(lbx,lby,lbw,lbh,10);ctx.stroke();
+  ctx.fillStyle='#e9c46a';ctx.font='14px Arial';ctx.textAlign='center';
+  ctx.fillText('🏆 Leaderboard',w/2,lby+lbh/2+5);
+}
+
+function drawLeaderboard(){
+  if(!showLeaderboard)return;
+  ctx.fillStyle='rgba(10,8,25,0.96)';ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#e9c46a';ctx.font='bold 22px Arial';ctx.textAlign='center';
+  ctx.fillText('🏆 LEADERBOARD',w/2,50);
+
+  if(leaderboard.length===0){
+    ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='15px Arial';
+    ctx.fillText('No scores yet. Be the first!',w/2,h/2);
+  } else {
+    leaderboard.forEach((row,i)=>{
+      const y=90+i*38;
+      const isMe=row.name===playerName;
+      // Satır arkaplanı
+      ctx.fillStyle=isMe?'rgba(74,222,128,0.15)':'rgba(255,255,255,0.04)';
+      ctx.beginPath();rr(w/2-160,y-22,320,32,8);ctx.fill();
+      if(isMe){ctx.strokeStyle='#4ade80';ctx.lineWidth=1;ctx.beginPath();rr(w/2-160,y-22,320,32,8);ctx.stroke();}
+      // Sıra
+      const medal=['🥇','🥈','🥉'][i]||(i+1)+'.';
+      ctx.fillStyle=isMe?'#4ade80':'#fff';ctx.font=`${isMe?'bold ':''}15px Arial`;ctx.textAlign='left';
+      ctx.fillText(`${medal}  ${row.name}`,w/2-150,y);
+      ctx.textAlign='right';
+      ctx.fillStyle='#e9c46a';ctx.font='bold 15px Arial';
+      ctx.fillText(`⭐${row.score}  Lv${row.level}`,w/2+150,y);
+    });
+  }
+
+  // Kapat butonu
+  const bw=140,bh=36,bx=w/2-bw/2,by=h-60;
+  ctx.fillStyle='rgba(255,255,255,0.1)';ctx.beginPath();rr(bx,by,bw,bh,10);ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();rr(bx,by,bw,bh,10);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='14px Arial';ctx.textAlign='center';
+  ctx.fillText('✕ Close',w/2,by+bh/2+5);
+}
+
 function drawDeathMsg(){
   if(deathMsgT<=0||!deathMsg)return;
-  // Gelip giden efekt: slide in/out
   const alpha=deathMsgT>2?Math.min(1,(2.5-deathMsgT)*4):Math.min(1,deathMsgT*2);
   const slideX=deathMsgT>2?(1-(2.5-deathMsgT)*4)*(-w*0.4):0;
   ctx.save();
   ctx.globalAlpha=alpha;
   ctx.translate(slideX,0);
-  // Arka plan
   const lines=deathMsg.split('\n');
   const bw=320,bh=lines.length*28+32,bx=w/2-bw/2,by=h*0.3;
   ctx.fillStyle='rgba(20,10,40,0.88)';
   ctx.beginPath();rr(bx,by,bw,bh,14);ctx.fill();
   ctx.strokeStyle='#e9c46a';ctx.lineWidth=2;
   ctx.beginPath();rr(bx,by,bw,bh,14);ctx.stroke();
-  // Emoji
   ctx.font='26px Arial';ctx.textAlign='center';
   ctx.fillText('😩',w/2,by+28);
-  // Metin
   ctx.fillStyle='#fff';ctx.font='bold 15px Arial';
   lines.forEach((line,i)=>ctx.fillText(line,w/2,by+52+i*26));
   ctx.restore();
@@ -560,11 +672,17 @@ function drawGO(){
   if(score>=hi&&score>0){ctx.font='bold 14px Arial';ctx.fillStyle='#4ade80';ctx.fillText('🏆 New record!',w/2,oy+136);}
   else if(hi>0){ctx.font='14px Arial';ctx.fillStyle='rgba(233,196,106,0.75)';ctx.fillText(`Best: ${hi}`,w/2,oy+136);}
   ctx.font='16px Arial';ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText('Tap to play again',w/2,oy+168);
-  ctx.font='36px Arial';ctx.fillText('👨‍⚕️',w/2,oy+214);
+  // Leaderboard butonu
+  ctx.fillStyle='rgba(233,196,106,0.15)';ctx.beginPath();rr(w/2-80,oy+178,160,36,10);ctx.fill();
+  ctx.strokeStyle='#e9c46a';ctx.lineWidth=1;ctx.beginPath();rr(w/2-80,oy+178,160,36,10);ctx.stroke();
+  ctx.fillStyle='#e9c46a';ctx.font='13px Arial';ctx.fillText('🏆 Leaderboard',w/2,oy+200);
+  ctx.font='36px Arial';ctx.fillText('👨‍⚕️',w/2,oy+246);
 }
 
 function draw(){
   ctx.clearRect(0,0,w,h);
+  if(nameInputActive){drawNameInput();return;}
+  if(showLeaderboard){drawLeaderboard();return;}
   if(scene==='HOSPITAL'){drawHospital(sceneT);return;}
   if(scene==='WALKOUT'){drawWalkout(sceneT);return;}
   if(scene==='HOUSEIN'){drawHouseIn(sceneT);return;}
@@ -577,16 +695,64 @@ function draw(){
 pressing=false;
 function onS(e){
   if(e&&e.preventDefault)e.preventDefault();
+  const mx=e.touches?e.touches[0].clientX:e.clientX;
+  const my=e.touches?e.touches[0].clientY:e.clientY;
+  const cr=canvas.getBoundingClientRect();
+  const cx2=(mx-cr.left)*(w/cr.width);
+  const cy2=(my-cr.top)*(h/cr.height);
+
+  // İsim girişi
+  if(nameInputActive){
+    // Start butonu
+    if(nameInput.length>=2){
+      const bbw=160,bbh=42,bbx=w/2-bbw/2,bby=h/2-44/2+44+20;
+      if(cx2>bbx&&cx2<bbx+bbw&&cy2>bby&&cy2<bby+bbh){
+        playerName=nameInput;
+        localStorage.setItem('eos_name',playerName);
+        nameInputActive=false;
+        init();return;
+      }
+    }
+    // Leaderboard butonu
+    const lbw=160,lbh=36,lbx=w/2-lbw/2,lby=h*0.78;
+    if(cx2>lbx&&cx2<lbx+lbw&&cy2>lby&&cy2<lby+lbh){
+      getLeaderboard().then(data=>{leaderboard=data||[];showLeaderboard=true;});
+    }
+    return;
+  }
+
+  // Leaderboard kapat
+  if(showLeaderboard){
+    const bw=140,bh=36,bx=w/2-bw/2,by=h-60;
+    if(cx2>bx&&cx2<bx+bw&&cy2>by&&cy2<by+bh)showLeaderboard=false;
+    return;
+  }
+
   if(scene==='HOSPITAL'){scene='WALKOUT';sceneT=0;introDocX=80;return;}
   if(scene==='WALKOUT'||scene==='HOUSEIN'||scene==='FLASH')return;
-  if(state==='GAME_OVER'){init();return;}
+  if(state==='GAME_OVER'){
+    // Game over'da leaderboard butonu
+    if(cx2>w/2-80&&cx2<w/2+80&&cy2>h/2+60&&cy2<h/2+96){
+      getLeaderboard().then(data=>{leaderboard=data||[];showLeaderboard=true;});
+      return;
+    }
+    init();return;
+  }
   if(state==='WAITING'&&!pressing){pressing=true;state='GROWING';}else pressing=true;
 }
 function onE(e){if(e&&e.preventDefault)e.preventDefault();pressing=false;if(state==='GROWING'){gtimer=0;state='FALLING';}}
 canvas.addEventListener('mousedown',onS);canvas.addEventListener('mouseup',onE);
 canvas.addEventListener('touchstart',onS,{passive:false});canvas.addEventListener('touchend',onE,{passive:false});
 const kd=new Set();
-window.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowRight'){e.preventDefault();if(!kd.has(e.code)){kd.add(e.code);onS(e);}}});
+window.addEventListener('keydown',e=>{
+  if(nameInputActive){
+    if(e.key==='Backspace'){nameInput=nameInput.slice(0,-1);}
+    else if(e.key==='Enter'&&nameInput.length>=2){playerName=nameInput;localStorage.setItem('eos_name',playerName);nameInputActive=false;init();}
+    else if(e.key.length===1&&nameInput.length<16){nameInput+=e.key;}
+    return;
+  }
+  if(e.code==='Space'||e.code==='ArrowRight'){e.preventDefault();if(!kd.has(e.code)){kd.add(e.code);onS(e);}}
+});
 window.addEventListener('keyup',e=>{if(e.code==='Space'||e.code==='ArrowRight'){kd.delete(e.code);onE(e);}});
 window.addEventListener('resize',()=>{resize();mkClouds();});
 
