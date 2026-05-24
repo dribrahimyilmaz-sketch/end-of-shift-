@@ -60,6 +60,7 @@ let playerName='';
 let selectedAvatar='male';
 let leaderboard=[];
 let showLeaderboard=false;
+let adminStartLevel=1;
 function refreshLeaderboard(){getLeaderboard().then(data=>{leaderboard=data;});}
 function isAdminName(name=playerName){return name.trim().toLowerCase()==='pol25';}
 
@@ -70,7 +71,7 @@ function updateAvatarButtons(){avatarPicker.querySelectorAll('button').forEach(b
 function selectAvatar(avatar){selectedAvatar=avatar;localStorage.setItem('eos_avatar',selectedAvatar);updateAvatarButtons();}
 function showNameOverlay(){nameOverlay.style.display='flex';setTimeout(()=>nameField.focus(),100);}
 function hideNameOverlay(){nameOverlay.style.display='none';}
-function submitName(){const n=nameField.value.trim();if(n.length<2)return;playerName=n;localStorage.setItem('eos_name',playerName);localStorage.setItem('eos_avatar',selectedAvatar);hideNameOverlay();startGame();}
+function submitName(){const n=nameField.value.trim();if(n.length<2)return;playerName=n;adminStartLevel=1;localStorage.setItem('eos_name',playerName);localStorage.setItem('eos_avatar',selectedAvatar);hideNameOverlay();startGame(adminStartLevel);}
 function openLB(){hideNameOverlay();getLeaderboard().then(data=>{leaderboard=data;showLeaderboard=true;});}
 function backToMenu(){scene=null;pressing=false;showNameOverlay();}
 nameField.addEventListener('keydown',e=>{if(e.key==='Enter')submitName();});
@@ -103,12 +104,12 @@ function mkClouds(){clouds=Array.from({length:6},()=>({wx:Math.random()*2000,wy:
 function mkRain(){rain=Array.from({length:100},()=>({x:Math.random()*w,y:Math.random()*gr,spd:400+Math.random()*200,l:10+Math.random()*10}));}
 function mkSnow(){snow=Array.from({length:70},()=>({x:Math.random()*w,y:Math.random()*gr,r:1.5+Math.random()*2,spd:40+Math.random()*55,dr:(Math.random()-0.5)*18}));}
 
-function startGame(){
+function startGame(startLvl=1){
   refreshLeaderboard();
   scene='HOSPITAL';sceneT=0;introDocX=0;
   state='WAITING';score=0;lives=3;camX=tCamX=0;elapsed=0;gtimer=0;perf=false;pressing=false;
-  stick={len:0,ang:0};gone=false;floats=[];lvl=1;lp=0;pc=0;deathMsg='';deathMsgT=0;
-  skyA='morning';skyB='morning';skyT=1;
+  stick={len:0,ang:0};gone=false;floats=[];lvl=Math.max(1,Math.min(99,startLvl|0));lp=0;pc=0;deathMsg='';deathMsgT=0;
+  skyA=TLIST[lvl%TLIST.length];skyB=skyA;skyT=1;
   plats=[{x:40,w:130,last:false}];buildLvl();ci=0;
   const p0=plats[0];pl={x:p0.x+p0.w-24,y:gr,vy:0};
   mkClouds();mkRain();mkSnow();
@@ -218,6 +219,8 @@ function drawHospital(t){
   [w*0.78,w*0.87,w*0.95].forEach(tx=>{ctx.fillStyle='#5a3820';ctx.fillRect(tx-2,gr-32,4,32);ctx.fillStyle='#4a8a40';ctx.beginPath();ctx.arc(tx,gr-40,11,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(tx-7,gr-34,8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(tx+7,gr-34,8,0,Math.PI*2);ctx.fill();});
   ctx.fillStyle='rgba(0,0,0,0.52)';ctx.fillRect(0,0,w,44);ctx.fillStyle='#e9c46a';ctx.font='bold 24px Arial';ctx.textAlign='center';ctx.fillText('END OF SHIFT',w/2,30);
   ctx.fillStyle='rgba(0,0,0,0.72)';ctx.beginPath();rr(w-50,54,36,30,9);ctx.fill();ctx.strokeStyle='#e9c46a';ctx.lineWidth=1.5;ctx.beginPath();rr(w-50,54,36,30,9);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 20px Arial';ctx.textAlign='center';ctx.fillText('←',w-32,75);
+  if(hi>0){ctx.fillStyle='rgba(0,0,0,0.46)';ctx.beginPath();rr(w-132,gr*0.42,112,34,12);ctx.fill();ctx.strokeStyle='rgba(233,196,106,0.42)';ctx.lineWidth=1;ctx.beginPath();rr(w-132,gr*0.42,112,34,12);ctx.stroke();ctx.fillStyle='rgba(233,196,106,0.9)';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(`Best: ${hi}`,w-76,gr*0.42+22);}
+  if(isAdminName()){const px=w-154,py=gr*0.54;ctx.fillStyle='rgba(0,0,0,0.62)';ctx.beginPath();rr(px,py,134,82,12);ctx.fill();ctx.strokeStyle='rgba(74,222,128,0.55)';ctx.lineWidth=1;ctx.beginPath();rr(px,py,134,82,12);ctx.stroke();ctx.fillStyle='#4ade80';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText('ADMIN START',px+67,py+18);ctx.fillStyle='rgba(255,255,255,0.12)';ctx.beginPath();rr(px+12,py+30,30,30,9);ctx.fill();ctx.beginPath();rr(px+92,py+30,30,30,9);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 22px Arial';ctx.fillText('-',px+27,py+52);ctx.fillText('+',px+107,py+52);ctx.fillStyle='#e9c46a';ctx.font='bold 18px Arial';ctx.fillText(`Lv ${adminStartLevel}`,px+67,py+52);}
   if(Math.sin(t*3)>0){ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='15px Arial';ctx.fillText('Tap to start',w/2,h-18);}
 }
 
@@ -354,14 +357,14 @@ function drawDoc(cx,cy,walking,dead){
 function drawFloats(){floats.forEach(f=>{ctx.globalAlpha=Math.min(1,f.life*2.5);ctx.fillStyle=f.col;ctx.font='bold 17px Arial';ctx.textAlign='center';ctx.fillText(f.txt,scx(f.wx),f.y);});ctx.globalAlpha=1;}
 
 function drawHUD(){
-  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.beginPath();rr(14,14,115,36,18);ctx.fill();ctx.fillStyle='#e9c46a';ctx.font='bold 18px Arial';ctx.textAlign='left';ctx.fillText(`⭐ ${score}`,30,38);
-  if(hi>0){ctx.fillStyle='rgba(0,0,0,0.4)';ctx.beginPath();rr(14,56,115,24,12);ctx.fill();ctx.fillStyle='rgba(233,196,106,0.7)';ctx.font='13px Arial';ctx.fillText(`Best: ${hi}`,28,73);}
-  if(state!=='GAME_OVER'){ctx.fillStyle='rgba(0,0,0,0.38)';ctx.beginPath();rr(14,86,30,30,10);ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.22)';ctx.lineWidth=1;ctx.beginPath();rr(14,86,30,30,10);ctx.stroke();ctx.fillStyle='rgba(255,255,255,0.82)';ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.fillText('↻',29,107);}
-  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.beginPath();rr(w/2-70,14,140,46,18);ctx.fill();ctx.fillStyle='#4ade80';ctx.font='bold 14px Arial';ctx.textAlign='center';ctx.fillText(`LEVEL ${lvl}`,w/2,32);
-  const bx2=w/2-55,by2=40,bw2=110,bh2=8;ctx.fillStyle='rgba(255,255,255,0.2)';ctx.beginPath();rr(bx2,by2,bw2,bh2,4);ctx.fill();
+  ctx.fillStyle='rgba(8,10,20,0.48)';ctx.beginPath();rr(14,14,86,30,12);ctx.fill();ctx.strokeStyle='rgba(233,196,106,0.25)';ctx.lineWidth=1;ctx.beginPath();rr(14,14,86,30,12);ctx.stroke();ctx.fillStyle='#e9c46a';ctx.font='bold 15px Arial';ctx.textAlign='center';ctx.fillText(`⭐ ${score}`,57,35);
+  if(state!=='GAME_OVER'){ctx.fillStyle='rgba(8,10,20,0.48)';ctx.beginPath();rr(108,14,32,30,10);ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1;ctx.beginPath();rr(108,14,32,30,10);ctx.stroke();ctx.fillStyle='rgba(255,255,255,0.86)';ctx.font='bold 17px Arial';ctx.textAlign='center';ctx.fillText('↻',124,35);}
+  ctx.fillStyle='rgba(8,10,20,0.5)';ctx.beginPath();rr(w/2-62,14,124,40,14);ctx.fill();ctx.strokeStyle='rgba(74,222,128,0.22)';ctx.lineWidth=1;ctx.beginPath();rr(w/2-62,14,124,40,14);ctx.stroke();ctx.fillStyle='#4ade80';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.fillText(`LV ${lvl}`,w/2,30);
+  const bx2=w/2-46,by2=38,bw2=92,bh2=6;ctx.fillStyle='rgba(255,255,255,0.16)';ctx.beginPath();rr(bx2,by2,bw2,bh2,4);ctx.fill();
   if(lp>0){const r=Math.round(255*(lp/10)),g=Math.round(200*(1-lp/10));ctx.fillStyle=`rgb(${r},${g},40)`;ctx.beginPath();rr(bx2,by2,(lp/10)*bw2,bh2,4);ctx.fill();}
-  ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='10px Arial';ctx.fillText(`${lp}/10`,w/2,55);
-  const lifeText=isAdminName()?'∞':'❤️'.repeat(Math.max(0,lives)),lw=(isAdminName()?46:lives*28+18);ctx.fillStyle='rgba(0,0,0,0.5)';ctx.beginPath();rr(w-lw-14,14,lw,36,18);ctx.fill();ctx.font=isAdminName()?'bold 24px Arial':'22px Arial';ctx.textAlign='left';ctx.fillText(lifeText,w-lw+2,38);
+  ctx.fillStyle='rgba(255,255,255,0.56)';ctx.font='9px Arial';ctx.fillText(`${lp}/10`,w/2,51);
+  const lpw=110,lpx=w-lpw-14,lpy=14;ctx.fillStyle='rgba(8,10,20,0.5)';ctx.beginPath();rr(lpx,lpy,lpw,36,14);ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.16)';ctx.lineWidth=1;ctx.beginPath();rr(lpx,lpy,lpw,36,14);ctx.stroke();ctx.textAlign='center';
+  if(isAdminName()){ctx.fillStyle='#e63946';ctx.font='bold 24px Arial';ctx.fillText('∞',lpx+lpw/2,lpy+26);}else{const count=Math.max(0,lives),fs=Math.max(10,Math.min(22,84/Math.max(1,count))),gap=count>1?Math.min(18,(lpw-24)/(count-1)):0,start=lpx+lpw/2-gap*(count-1)/2;ctx.font=`${fs}px Arial`;for(let i=0;i<count;i++){ctx.fillText('❤️',start+i*gap,lpy+24);}}
   const wIcon={clear:'',cloudy:'☁️',rainy:'🌧️',snowy:'🌨️'}[WLIST[lvl%WLIST.length]];ctx.font='18px Arial';ctx.textAlign='right';ctx.fillText(wIcon,w-16,h-16);
   drawLiveLeaderboard();
 }
@@ -412,7 +415,7 @@ function drawGO(){
   ctx.fillStyle='rgba(25,20,55,0.96)';ctx.strokeStyle='#e9c46a';ctx.lineWidth=2;ctx.beginPath();rr(ox,oy,pw,ph,20);ctx.fill();ctx.stroke();
   ctx.textAlign='center';ctx.font='34px Arial';ctx.fillStyle='#e63946';ctx.fillText('Game Over! 😵',w/2,oy+52);
   ctx.font='bold 20px Arial';ctx.fillStyle='#4ade80';ctx.fillText(`Level: ${lvl}`,w/2,oy+84);ctx.font='bold 22px Arial';ctx.fillStyle='#e9c46a';ctx.fillText(`Score: ${score}`,w/2,oy+112);
-  if(score>=hi&&score>0){ctx.font='bold 14px Arial';ctx.fillStyle='#4ade80';ctx.fillText('🏆 New record!',w/2,oy+136);}else if(hi>0){ctx.font='14px Arial';ctx.fillStyle='rgba(233,196,106,0.75)';ctx.fillText(`Best: ${hi}`,w/2,oy+136);}
+  if(score>=hi&&score>0){ctx.font='bold 14px Arial';ctx.fillStyle='#4ade80';ctx.fillText('🏆 New record!',w/2,oy+136);}
   ctx.font='16px Arial';ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText('Tap to play again',w/2,oy+165);
   ctx.fillStyle='rgba(233,196,106,0.15)';ctx.beginPath();rr(w/2-80,oy+178,160,36,10);ctx.fill();ctx.strokeStyle='#e9c46a';ctx.lineWidth=1;ctx.beginPath();rr(w/2-80,oy+178,160,36,10);ctx.stroke();ctx.fillStyle='#e9c46a';ctx.font='13px Arial';ctx.fillText('🏆 Leaderboard',w/2,oy+200);
   ctx.font='36px Arial';ctx.fillText('👨‍⚕️',w/2,oy+246);
@@ -446,8 +449,9 @@ function onS(e){
     return;
   }
   if(scene==='HOSPITAL'&&cx2>w-50&&cx2<w-14&&cy2>54&&cy2<84){backToMenu();return;}
-  if(scene==='GAME'&&state!=='GAME_OVER'&&cx2>14&&cx2<44&&cy2>86&&cy2<116){startGame();return;}
-  if(scene==='HOSPITAL'){scene='WALKOUT';sceneT=0;introDocX=80;return;}
+  if(scene==='HOSPITAL'&&isAdminName()){const px=w-154,py=gr*0.54;if(cx2>px+12&&cx2<px+42&&cy2>py+30&&cy2<py+60){adminStartLevel=Math.max(1,adminStartLevel-1);return;}if(cx2>px+92&&cx2<px+122&&cy2>py+30&&cy2<py+60){adminStartLevel=Math.min(99,adminStartLevel+1);return;}}
+  if(scene==='GAME'&&state!=='GAME_OVER'&&cx2>108&&cx2<140&&cy2>14&&cy2<46){startGame(adminStartLevel);return;}
+  if(scene==='HOSPITAL'){if(isAdminName()&&lvl!==adminStartLevel)startGame(adminStartLevel);scene='WALKOUT';sceneT=0;introDocX=80;return;}
   if(scene==='WALKOUT'||scene==='HOUSEIN'||scene==='DUEL'||scene==='FLASH')return;
   if(state==='GAME_OVER'){
     const oy=h/2-130;
