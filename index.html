@@ -169,7 +169,15 @@ function update(dt){
   if(state==='DEAD'){
     pl.vy+=2160*dt;pl.y+=pl.vy*dt;pl.x+=120*dt;
     if(pl.y>h+80){
-      if(!isAdminName())lives--;SFX.fail();saveHi();
+      if(isAdminName()){
+        SFX.fail();saveHi();
+        const ni=Math.min(ci+1,plats.length-1),p=plats[ni]||plats[ci];
+        ci=ni;pl.x=p.x+p.w-24;pl.y=gr;pl.vy=0;
+        camX=tCamX=Math.max(0,p.x+p.w-w*0.35);
+        stick.len=0;stick.ang=0;gone=false;gtimer=0;pressing=false;state='WAITING';
+        return;
+      }
+      lives--;SFX.fail();saveHi();
       if(lives<=0){
         state='GAME_OVER';
         (playerName?saveScore(playerName,score,lvl):Promise.resolve()).then(()=>getLeaderboard()).then(data=>{leaderboard=data;});
