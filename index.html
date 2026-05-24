@@ -101,8 +101,8 @@ function startGame(){
 function init(){
   resize();
   playerName=localStorage.getItem('eos_name')||'';
-  if(!playerName){showNameOverlay();}
-  else{startGame();}
+  nameField.value=playerName;
+  showNameOverlay();
 }
 
 const scx=wx=>wx-camX;
@@ -373,7 +373,7 @@ function onS(e){
   const cy2=(my-cr.top)*(h/cr.height);
   if(showLeaderboard){
     const bw=140,bh=36,bx=w/2-bw/2,by=h-60;
-    if(cx2>bx&&cx2<bx+bw&&cy2>by&&cy2<by+bh){showLeaderboard=false;if(!playerName)showNameOverlay();}
+    if(cx2>bx&&cx2<bx+bw&&cy2>by&&cy2<by+bh){showLeaderboard=false;if(!scene)showNameOverlay();}
     return;
   }
   if(scene==='HOSPITAL'){scene='WALKOUT';sceneT=0;introDocX=80;return;}
