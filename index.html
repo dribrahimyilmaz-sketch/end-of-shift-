@@ -189,7 +189,7 @@ function update(dt){
       lives--;SFX.fail();saveHi();
       if(lives<=0){
         state='GAME_OVER';
-        (playerName?saveScore(playerName,score,lvl):Promise.resolve()).then(()=>getLeaderboard()).then(data=>{leaderboard=data;});
+        (playerName&&score>0?saveScore(playerName,score,lvl):Promise.resolve()).then(()=>getLeaderboard()).then(data=>{leaderboard=data;});
       } else {
         lp=0;const si=(lvl-1)*10;ci=Math.max(0,si);
         const p=plats[ci];pl.x=p.x+p.w-24;pl.y=gr;pl.vy=0;
