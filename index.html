@@ -19,6 +19,10 @@ canvas{display:block;touch-action:none;cursor:pointer}
 .avatarPicker canvas{width:44px;height:54px;display:block;}
 #nameOverlay button.startBtn{width:180px;padding:13px;font:bold 16px Arial;border:none;border-radius:10px;background:#4ade80;color:#000;cursor:pointer;margin-bottom:12px;}
 #nameOverlay button.lbBtn{background:transparent;border:1px solid #e9c46a;color:#e9c46a;font:14px Arial;padding:10px 20px;border-radius:10px;cursor:pointer;}
+.roomPanel{width:270px;margin:0 0 14px;padding:10px;border:1px solid rgba(255,255,255,0.14);border-radius:10px;background:rgba(255,255,255,0.06);text-align:center;}
+.roomPanel .roomStatus{color:#e9c46a;font:bold 12px Arial;margin-bottom:8px;min-height:15px;}
+.roomPanel .roomActions{display:flex;gap:8px;justify-content:center;}
+.roomPanel button{border:1px solid rgba(233,196,106,0.5);border-radius:8px;background:rgba(0,0,0,0.2);color:#e9c46a;font:bold 11px Arial;padding:7px 9px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -32,6 +36,14 @@ canvas{display:block;touch-action:none;cursor:pointer}
     <button type="button" data-avatar="femaleDoctor" onclick="selectAvatar('femaleDoctor')" title="Female doctor"><canvas width="44" height="54" data-avatar-preview="femaleDoctor"></canvas></button>
     <button type="button" data-avatar="maleNurse" onclick="selectAvatar('maleNurse')" title="Male nurse"><canvas width="44" height="54" data-avatar-preview="maleNurse"></canvas></button>
     <button type="button" data-avatar="femaleNurse" onclick="selectAvatar('femaleNurse')" title="Female nurse"><canvas width="44" height="54" data-avatar-preview="femaleNurse"></canvas></button>
+  </div>
+  <div class="roomPanel">
+    <div class="roomStatus" id="roomStatus">Global leaderboard</div>
+    <div class="roomActions">
+      <button type="button" onclick="createRoom()">Create Room</button>
+      <button type="button" onclick="joinRoom()">Join</button>
+      <button type="button" onclick="leaveRoom()">Global</button>
+    </div>
   </div>
   <button class="startBtn" onclick="submitName()">▶ START</button>
   <button class="lbBtn" onclick="openLB()">🏆 Leaderboard</button>
@@ -50,8 +62,8 @@ const SFX={grow:()=>beep(200,'sawtooth',0.04,0.07),fall:()=>beep(160,'sine',0.3)
 // Supabase
 const SB_URL='https://vriammjvjuyyrevbsvwf.supabase.co';
 const SB_KEY='sb_publishable_GSxI0zjTs9rYn_9LiEesPQ_ajbzbiak';
-async function saveScore(name,score,level){if(name.trim().toLowerCase()==='pol25')return false;try{const r=await fetch(`${SB_URL}/rest/v1/scores`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Prefer':'return=minimal'},body:JSON.stringify({name:name.slice(0,16),score:Number(score)||0,level:Number(level)||1})});if(!r.ok)console.warn('Score save failed:',await r.text());return r.ok;}catch(e){console.warn('Score save error:',e);return false;}}
-async function getLeaderboard(){try{const r=await fetch(`${SB_URL}/rest/v1/scores?select=name,score,level&order=score.desc&limit=10`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});if(!r.ok){console.warn('Leaderboard failed:',await r.text());return [];}const data=await r.json();return Array.isArray(data)?data.filter(row=>(row.name||'').trim().toLowerCase()!=='pol25'):[];}catch(e){console.warn('Leaderboard error:',e);return[];}}
+async function saveScore(name,score,level){if(name.trim().toLowerCase()==='pol25')return false;try{const body={name:name.slice(0,16),score:Number(score)||0,level:Number(level)||1};if(currentRoom)body.room_code=currentRoom;const r=await fetch(`${SB_URL}/rest/v1/scores`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Prefer':'return=minimal'},body:JSON.stringify(body)});if(!r.ok)console.warn('Score save failed:',await r.text());return r.ok;}catch(e){console.warn('Score save error:',e);return false;}}
+async function getLeaderboard(room=currentRoom){try{const scope=room?`room_code=eq.${encodeURIComponent(room)}`:'room_code=is.null';let r=await fetch(`${SB_URL}/rest/v1/scores?select=name,score,level,room_code&${scope}&order=score.desc&limit=10`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});if(!r.ok&&!room)r=await fetch(`${SB_URL}/rest/v1/scores?select=name,score,level&order=score.desc&limit=10`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});if(!r.ok){console.warn('Leaderboard failed:',await r.text());return [];}const data=await r.json();return Array.isArray(data)?data.filter(row=>(row.name||'').trim().toLowerCase()!=='pol25'):[];}catch(e){console.warn('Leaderboard error:',e);return[];}}
 
 // Persist
 let hi=parseInt(localStorage.getItem('kd_hi')||'0');
@@ -64,6 +76,7 @@ let leaderboard=[];
 let showLeaderboard=false;
 let adminStartLevel=1;
 let activePlayerCount=null;
+let currentRoom='';
 const sessionId=localStorage.getItem('eos_session')||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
 localStorage.setItem('eos_session',sessionId);
 function refreshLeaderboard(){getLeaderboard().then(data=>{leaderboard=data;});}
@@ -74,9 +87,17 @@ setInterval(refreshActivePlayers,15000);
 const nameOverlay=document.getElementById('nameOverlay');
 const nameField=document.getElementById('nameField');
 const avatarPicker=document.getElementById('avatarPicker');
+const roomStatus=document.getElementById('roomStatus');
 function updateAvatarButtons(){avatarPicker.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.avatar===selectedAvatar));drawAvatarPreviews();}
 function selectAvatar(avatar){selectedAvatar=avatar;localStorage.setItem('eos_avatar',selectedAvatar);updateAvatarButtons();}
-function showNameOverlay(){nameOverlay.style.display='flex';setTimeout(()=>nameField.focus(),100);}
+function cleanRoom(code){return (code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);}
+function roomLink(){const u=new URL(location.href);u.searchParams.set('room',currentRoom);return u.href;}
+function updateRoomUI(){if(roomStatus)roomStatus.textContent=currentRoom?`Room: ${currentRoom}`:'Global leaderboard';}
+function createRoom(){currentRoom=`SHIFT${Math.random().toString(36).slice(2,6).toUpperCase()}`;localStorage.setItem('eos_room',currentRoom);updateRoomUI();refreshLeaderboard();}
+function joinRoom(){const code=cleanRoom(prompt('Room code?')||'');if(!code)return;currentRoom=code;localStorage.setItem('eos_room',currentRoom);updateRoomUI();refreshLeaderboard();}
+function leaveRoom(){currentRoom='';localStorage.removeItem('eos_room');updateRoomUI();refreshLeaderboard();}
+function shareChallenge(){if(!currentRoom)createRoom();const text=`I scored ${score} in End of Shift. Can you beat me? Join my room: ${roomLink()}`;if(navigator.share)navigator.share({title:'End of Shift Challenge',text,url:roomLink()}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>float('Challenge link copied!',pl.x,gr-90,'#4ade80')).catch(()=>prompt('Copy challenge link:',text));else prompt('Copy challenge link:',text);}
+function showNameOverlay(){updateRoomUI();nameOverlay.style.display='flex';setTimeout(()=>nameField.focus(),100);}
 function hideNameOverlay(){nameOverlay.style.display='none';}
 function submitName(){const n=nameField.value.trim();if(n.length<2)return;playerName=n;adminStartLevel=1;localStorage.setItem('eos_name',playerName);localStorage.setItem('eos_avatar',selectedAvatar);hideNameOverlay();refreshActivePlayers();startGame(adminStartLevel);}
 function openLB(){hideNameOverlay();getLeaderboard().then(data=>{leaderboard=data;showLeaderboard=true;});}
@@ -129,8 +150,11 @@ function init(){
   if(selectedAvatar==='male')selectedAvatar='maleDoctor';
   if(selectedAvatar==='female')selectedAvatar='femaleDoctor';
   if(!['maleDoctor','femaleDoctor','maleNurse','femaleNurse'].includes(selectedAvatar))selectedAvatar='maleDoctor';
+  currentRoom=cleanRoom(new URLSearchParams(location.search).get('room'))||cleanRoom(localStorage.getItem('eos_room'));
+  if(currentRoom)localStorage.setItem('eos_room',currentRoom);
   nameField.value=playerName;
   updateAvatarButtons();
+  updateRoomUI();
   showNameOverlay();
 }
 
@@ -439,7 +463,7 @@ function drawLiveLeaderboard(){
   if(px<150||state==='GAME_OVER')return;
   if(activePlayerCount!==null){ctx.fillStyle='rgba(8,10,20,0.55)';ctx.beginPath();rr(px,py-26,compact?72:82,20,10);ctx.fill();ctx.fillStyle='#22c55e';ctx.beginPath();ctx.arc(px+12,py-16,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font=`bold ${compact?10:11}px Arial`;ctx.textAlign='left';ctx.fillText(String(activePlayerCount),px+23,py-12);}
   ctx.fillStyle='rgba(10,8,25,0.68)';ctx.beginPath();rr(px,py,pw,ph,10);ctx.fill();ctx.strokeStyle='rgba(233,196,106,0.35)';ctx.lineWidth=1;ctx.beginPath();rr(px,py,pw,ph,10);ctx.stroke();
-  ctx.fillStyle='#e9c46a';ctx.font=`bold ${compact?10:11}px Arial`;ctx.textAlign='left';ctx.fillText('TOP 5',px+10,py+18);
+  ctx.fillStyle='#e9c46a';ctx.font=`bold ${compact?10:11}px Arial`;ctx.textAlign='left';ctx.fillText(currentRoom?'ROOM TOP 5':'TOP 5',px+10,py+18);
   if(top.length===0){ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font=`${compact?10:11}px Arial`;ctx.fillText('No scores yet',px+10,py+42);return;}
   top.forEach((r,i)=>{const y=py+38+i*rowH,isMe=r.name===playerName;ctx.fillStyle=isMe?'rgba(74,222,128,0.18)':'rgba(255,255,255,0.05)';ctx.beginPath();rr(px+6,y-rowH+3,pw-12,rowH,5);ctx.fill();ctx.fillStyle=isMe?'#4ade80':'#fff';ctx.font=`${isMe?'bold ':''}${compact?10:11}px Arial`;ctx.textAlign='left';ctx.fillText(`${i+1}. ${shortName(r.name,compact?9:12)}`,px+10,y);ctx.textAlign='right';ctx.fillStyle='#e9c46a';ctx.font=`bold ${compact?10:11}px Arial`;ctx.fillText(String(r.score),px+pw-10,y);});
   if(rank>5){const y=py+38+5*rowH+12;ctx.strokeStyle='rgba(255,255,255,0.16)';ctx.beginPath();ctx.moveTo(px+10,y-11);ctx.lineTo(px+pw-10,y-11);ctx.stroke();ctx.fillStyle='#4ade80';ctx.font=`bold ${compact?10:11}px Arial`;ctx.textAlign='left';ctx.fillText(`#${rank} ${shortName(playerName,compact?8:11)}`,px+10,y);ctx.textAlign='right';ctx.fillText(String(score),px+pw-10,y);}
@@ -467,7 +491,7 @@ function drawDeathMsg(){
 
 function drawLeaderboard(){
   if(!showLeaderboard)return;
-  ctx.fillStyle='rgba(10,8,25,0.96)';ctx.fillRect(0,0,w,h);ctx.fillStyle='#e9c46a';ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.fillText('🏆 LEADERBOARD',w/2,50);
+  ctx.fillStyle='rgba(10,8,25,0.96)';ctx.fillRect(0,0,w,h);ctx.fillStyle='#e9c46a';ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.fillText(currentRoom?`ROOM ${currentRoom}`:'🏆 LEADERBOARD',w/2,50);
   if(leaderboard.length===0){ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='15px Arial';ctx.fillText('No scores yet. Be the first!',w/2,h/2);}
   else{leaderboard.forEach((row,i)=>{const y=90+i*38,isMe=row.name===playerName;ctx.fillStyle=isMe?'rgba(74,222,128,0.15)':'rgba(255,255,255,0.04)';ctx.beginPath();rr(w/2-160,y-22,320,32,8);ctx.fill();if(isMe){ctx.strokeStyle='#4ade80';ctx.lineWidth=1;ctx.beginPath();rr(w/2-160,y-22,320,32,8);ctx.stroke();}const medal=['🥇','🥈','🥉'][i]||(i+1)+'.';ctx.fillStyle=isMe?'#4ade80':'#fff';ctx.font=`${isMe?'bold ':''}15px Arial`;ctx.textAlign='left';ctx.fillText(`${medal}  ${row.name}`,w/2-150,y);ctx.textAlign='right';ctx.fillStyle='#e9c46a';ctx.font='bold 15px Arial';ctx.fillText(`⭐${row.score}  Lv${row.level}`,w/2+150,y);});}
   const bw=140,bh=36,bx=w/2-bw/2,by=h-60;ctx.fillStyle='rgba(255,255,255,0.1)';ctx.beginPath();rr(bx,by,bw,bh,10);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();rr(bx,by,bw,bh,10);ctx.stroke();ctx.fillStyle='#fff';ctx.font='14px Arial';ctx.textAlign='center';ctx.fillText('✕ Close',w/2,by+bh/2+5);
@@ -478,14 +502,15 @@ function drawHint(){if(state!=='WAITING'||score>0)return;ctx.fillStyle='rgba(255
 function drawGO(){
   if(state!=='GAME_OVER')return;
   ctx.fillStyle='rgba(10,8,25,0.82)';ctx.fillRect(0,0,w,h);
-  const pw=300,ph=260,ox=w/2-pw/2,oy=h/2-ph/2;
+  const pw=300,ph=300,ox=w/2-pw/2,oy=h/2-ph/2;
   ctx.fillStyle='rgba(25,20,55,0.96)';ctx.strokeStyle='#e9c46a';ctx.lineWidth=2;ctx.beginPath();rr(ox,oy,pw,ph,20);ctx.fill();ctx.stroke();
   ctx.textAlign='center';ctx.font='34px Arial';ctx.fillStyle='#e63946';ctx.fillText('Game Over! 😵',w/2,oy+52);
   ctx.font='bold 20px Arial';ctx.fillStyle='#4ade80';ctx.fillText(`Level: ${lvl}`,w/2,oy+84);ctx.font='bold 22px Arial';ctx.fillStyle='#e9c46a';ctx.fillText(`Score: ${score}`,w/2,oy+112);
   if(score>=hi&&score>0){ctx.font='bold 14px Arial';ctx.fillStyle='#4ade80';ctx.fillText('🏆 New record!',w/2,oy+136);}
   ctx.font='16px Arial';ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fillText('Tap to play again',w/2,oy+165);
   ctx.fillStyle='rgba(233,196,106,0.15)';ctx.beginPath();rr(w/2-80,oy+178,160,36,10);ctx.fill();ctx.strokeStyle='#e9c46a';ctx.lineWidth=1;ctx.beginPath();rr(w/2-80,oy+178,160,36,10);ctx.stroke();ctx.fillStyle='#e9c46a';ctx.font='13px Arial';ctx.fillText('🏆 Leaderboard',w/2,oy+200);
-  ctx.font='36px Arial';ctx.fillText('👨‍⚕️',w/2,oy+246);
+  ctx.fillStyle='rgba(74,222,128,0.14)';ctx.beginPath();rr(w/2-90,oy+222,180,34,10);ctx.fill();ctx.strokeStyle='rgba(74,222,128,0.65)';ctx.lineWidth=1;ctx.beginPath();rr(w/2-90,oy+222,180,34,10);ctx.stroke();ctx.fillStyle='#4ade80';ctx.font='13px Arial';ctx.fillText('Challenge Friends',w/2,oy+243);
+  ctx.font='30px Arial';ctx.fillText('👨‍⚕️',w/2,oy+284);
 }
 
 function draw(){
@@ -522,8 +547,9 @@ function onS(e){
   if(scene==='HOSPITAL'){if(isAdminName()&&lvl!==adminStartLevel)startGame(adminStartLevel);scene='WALKOUT';sceneT=0;introDocX=80;return;}
   if(scene==='WALKOUT'||scene==='HOUSEIN'||scene==='DUEL'||scene==='FLASH')return;
   if(state==='GAME_OVER'){
-    const oy=h/2-130;
+    const oy=h/2-150;
     if(cx2>w/2-80&&cx2<w/2+80&&cy2>oy+178&&cy2<oy+214){getLeaderboard().then(data=>{leaderboard=data;showLeaderboard=true;});return;}
+    if(cx2>w/2-90&&cx2<w/2+90&&cy2>oy+222&&cy2<oy+256){shareChallenge();return;}
     startGame();return;
   }
   if(state==='BURST')return;
