@@ -14,8 +14,9 @@ canvas{display:block;touch-action:none;cursor:pointer}
 #nameOverlay input{width:260px;padding:12px 16px;font-size:18px;border:2px solid #555;border-radius:10px;background:rgba(255,255,255,0.08);color:#fff;outline:none;text-align:center;margin-bottom:16px;}
 #nameOverlay input:focus{border-color:#4ade80;}
 .avatarPicker{display:flex;gap:10px;margin:-4px 0 18px;}
-.avatarPicker button{width:58px;height:58px;border:1px solid rgba(255,255,255,0.18);border-radius:12px;background:rgba(255,255,255,0.08);color:#fff;font:24px Arial;cursor:pointer;}
+.avatarPicker button{width:58px;height:64px;border:1px solid rgba(255,255,255,0.18);border-radius:12px;background:rgba(255,255,255,0.08);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .avatarPicker button.active{border-color:#4ade80;background:rgba(74,222,128,0.18);box-shadow:0 0 0 2px rgba(74,222,128,0.18);}
+.avatarPicker canvas{width:44px;height:54px;display:block;}
 #nameOverlay button.startBtn{width:180px;padding:13px;font:bold 16px Arial;border:none;border-radius:10px;background:#4ade80;color:#000;cursor:pointer;margin-bottom:12px;}
 #nameOverlay button.lbBtn{background:transparent;border:1px solid #e9c46a;color:#e9c46a;font:14px Arial;padding:10px 20px;border-radius:10px;cursor:pointer;}
 </style>
@@ -27,10 +28,10 @@ canvas{display:block;touch-action:none;cursor:pointer}
   <p>Enter your name to start</p>
   <input id="nameField" type="text" maxlength="16" placeholder="Your name..." autocomplete="off"/>
   <div class="avatarPicker" id="avatarPicker" aria-label="Choose avatar">
-    <button type="button" data-avatar="maleDoctor" onclick="selectAvatar('maleDoctor')" title="Male doctor">MD</button>
-    <button type="button" data-avatar="femaleDoctor" onclick="selectAvatar('femaleDoctor')" title="Female doctor">FD</button>
-    <button type="button" data-avatar="maleNurse" onclick="selectAvatar('maleNurse')" title="Male nurse">MN</button>
-    <button type="button" data-avatar="femaleNurse" onclick="selectAvatar('femaleNurse')" title="Female nurse">FN</button>
+    <button type="button" data-avatar="maleDoctor" onclick="selectAvatar('maleDoctor')" title="Male doctor"><canvas width="44" height="54" data-avatar-preview="maleDoctor"></canvas></button>
+    <button type="button" data-avatar="femaleDoctor" onclick="selectAvatar('femaleDoctor')" title="Female doctor"><canvas width="44" height="54" data-avatar-preview="femaleDoctor"></canvas></button>
+    <button type="button" data-avatar="maleNurse" onclick="selectAvatar('maleNurse')" title="Male nurse"><canvas width="44" height="54" data-avatar-preview="maleNurse"></canvas></button>
+    <button type="button" data-avatar="femaleNurse" onclick="selectAvatar('femaleNurse')" title="Female nurse"><canvas width="44" height="54" data-avatar-preview="femaleNurse"></canvas></button>
   </div>
   <button class="startBtn" onclick="submitName()">▶ START</button>
   <button class="lbBtn" onclick="openLB()">🏆 Leaderboard</button>
@@ -73,7 +74,7 @@ setInterval(refreshActivePlayers,15000);
 const nameOverlay=document.getElementById('nameOverlay');
 const nameField=document.getElementById('nameField');
 const avatarPicker=document.getElementById('avatarPicker');
-function updateAvatarButtons(){avatarPicker.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.avatar===selectedAvatar));}
+function updateAvatarButtons(){avatarPicker.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.avatar===selectedAvatar));drawAvatarPreviews();}
 function selectAvatar(avatar){selectedAvatar=avatar;localStorage.setItem('eos_avatar',selectedAvatar);updateAvatarButtons();}
 function showNameOverlay(){nameOverlay.style.display='flex';setTimeout(()=>nameField.focus(),100);}
 function hideNameOverlay(){nameOverlay.style.display='none';}
@@ -346,11 +347,32 @@ function drawStick(){
   ctx.restore();
 }
 
+function drawCrescent(g,x,y,r,col='#f4d35e',cut='#fff'){
+  g.fillStyle=col;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();
+  g.fillStyle=cut;g.beginPath();g.arc(x+r*0.42,y-r*0.08,r*0.88,0,Math.PI*2);g.fill();
+}
+
+function drawAvatarPreviews(){
+  document.querySelectorAll('[data-avatar-preview]').forEach(cv=>{
+    const g=cv.getContext('2d'),av=cv.dataset.avatar,female=av==='femaleDoctor'||av==='femaleNurse',nurse=av==='maleNurse'||av==='femaleNurse',femaleDoctor=av==='femaleDoctor';
+    g.clearRect(0,0,cv.width,cv.height);g.save();g.translate(22,51);g.scale(female?0.62:0.66,female?0.62:0.66);g.lineCap='round';g.lineJoin='round';
+    const skin=female?'#d79a73':'#c9855f',hair=femaleDoctor?'#151015':female?'#2a1712':'#2b1a12',main=nurse?'#23a6a8':'#f7f8fb',shade=nurse?'#157a86':'#dfe3ea',pants=nurse?'#12606a':'#234a84';
+    g.strokeStyle=pants;g.lineWidth=6;g.beginPath();g.moveTo(-4,-28);g.lineTo(-6,-12);g.lineTo(-8,0);g.moveTo(4,-28);g.lineTo(6,-12);g.lineTo(8,0);g.stroke();
+    const suit=g.createLinearGradient(0,-63,0,-28);suit.addColorStop(0,main);suit.addColorStop(1,shade);g.fillStyle=suit;g.beginPath();g.moveTo(-10,-29);g.lineTo(10,-29);g.quadraticCurveTo(12,-45,8,-62);g.lineTo(-8,-62);g.quadraticCurveTo(-12,-45,-10,-29);g.closePath();g.fill();
+    if(!nurse){drawCrescent(g,5,-47,3.5,'#f4d35e',shade);}else{g.fillStyle='#fff';g.beginPath();g.moveTo(-5,-65);g.lineTo(0,-70);g.lineTo(5,-65);g.closePath();g.fill();drawCrescent(g,1,-67,2.4,'#e63946','#fff');}
+    g.strokeStyle=shade;g.lineWidth=5;g.beginPath();g.moveTo(-7,-58);g.lineTo(-13,-38);g.moveTo(7,-58);g.lineTo(13,-38);g.stroke();
+    g.fillStyle=skin;g.fillRect(-3,-66,6,5);g.beginPath();g.ellipse(4,-79,female?9:10.5,female?11:11.5,0,0,Math.PI*2);g.fill();
+    g.fillStyle=hair;if(femaleDoctor){g.beginPath();g.moveTo(-8,-87);g.bezierCurveTo(-14,-81,-12,-68,-8,-61);g.bezierCurveTo(-3,-64,-1,-76,0,-86);g.closePath();g.fill();g.beginPath();g.moveTo(8,-87);g.bezierCurveTo(15,-80,13,-68,9,-61);g.bezierCurveTo(5,-66,5,-77,4,-86);g.closePath();g.fill();g.beginPath();g.ellipse(3,-89,12,6,0,Math.PI,Math.PI*2);g.fill();}else if(female){g.beginPath();g.moveTo(-7,-88);g.bezierCurveTo(-15,-80,-13,-64,-9,-52);g.bezierCurveTo(-5,-58,-4,-72,-1,-84);g.closePath();g.fill();g.beginPath();g.moveTo(8,-88);g.bezierCurveTo(17,-80,15,-64,11,-52);g.bezierCurveTo(7,-58,7,-72,5,-85);g.closePath();g.fill();g.beginPath();g.ellipse(3,-89,12,6,0,Math.PI,Math.PI*2);g.fill();}else{g.beginPath();g.ellipse(3,-88,12,7,0,Math.PI,Math.PI*2);g.fill();g.beginPath();g.ellipse(-4,-82,6,6,0,0,Math.PI*2);g.fill();}
+    if(nurse){g.fillStyle='#fff';g.beginPath();g.ellipse(3,-91,10,3.5,0,0,Math.PI*2);g.fill();drawCrescent(g,4,-91,2.2,'#e63946','#fff');}
+    g.fillStyle='#fff';g.beginPath();g.ellipse(1,-81,2.2,2.6,0,0,Math.PI*2);g.fill();g.beginPath();g.ellipse(8,-81,2.4,2.6,0,0,Math.PI*2);g.fill();g.fillStyle='#2d1b10';g.beginPath();g.arc(1.4,-81,1,0,Math.PI*2);g.fill();g.beginPath();g.arc(8.3,-81,1,0,Math.PI*2);g.fill();g.strokeStyle=female?'#d64f6f':'#7a2e10';g.lineWidth=1.2;g.beginPath();g.moveTo(2,-72);g.quadraticCurveTo(5,-70,8,-72);g.stroke();g.restore();
+  });
+}
+
 function drawDoc(cx,cy,walking,dead){
   const mobile=w<520,av=selectedAvatar||'maleDoctor';
-  const female=av==='femaleDoctor'||av==='femaleNurse',nurse=av==='maleNurse'||av==='femaleNurse';
+  const female=av==='femaleDoctor'||av==='femaleNurse',nurse=av==='maleNurse'||av==='femaleNurse',femaleDoctor=av==='femaleDoctor';
   const t=walking?elapsed*(mobile?7.2:8.4):0,stride=walking?Math.sin(t):0,bob=walking?Math.abs(Math.sin(t))*1.5:0;
-  const skin=female?'#d79a73':'#c9855f',skin2=female?'#b86b4d':'#9a5538',hair=female?'#f2c14e':'#2b1a12';
+  const skin=female?'#d79a73':'#c9855f',skin2=female?'#b86b4d':'#9a5538',hair=femaleDoctor?'#151015':female?'#2a1712':'#2b1a12';
   const main=nurse?'#23a6a8':'#f7f8fb',shade=nurse?'#157a86':'#dfe3ea',trim=nurse?'#ffffff':'#c9ced8',pants=nurse?'#12606a':'#234a84';
   ctx.save();ctx.translate(cx,cy-bob);if(female)ctx.scale(0.92,0.92);ctx.lineCap='round';ctx.lineJoin='round';
 
@@ -362,20 +384,21 @@ function drawDoc(cx,cy,walking,dead){
   const suit=ctx.createLinearGradient(0,-63,0,-28);suit.addColorStop(0,main);suit.addColorStop(1,shade);
   ctx.fillStyle=suit;ctx.beginPath();ctx.moveTo(-10,-29);ctx.lineTo(10,-29);ctx.quadraticCurveTo(12,-45,8,-62);ctx.lineTo(-8,-62);ctx.quadraticCurveTo(-12,-45,-10,-29);ctx.closePath();ctx.fill();
   ctx.strokeStyle=trim;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,-61);ctx.lineTo(0,-30);ctx.moveTo(-7,-61);ctx.lineTo(0,-52);ctx.lineTo(7,-61);ctx.stroke();
-  ctx.fillStyle=nurse?'#ffffff':'#e63946';ctx.beginPath();ctx.arc(5,-47,3.6,0,Math.PI*2);ctx.fill();ctx.fillStyle=nurse?'#e63946':'#ffffff';ctx.fillRect(4,-49,2,4);ctx.fillRect(3,-48,4,2);
+  if(!nurse){drawCrescent(ctx,5,-47,3.8,'#f4d35e',shade);}
 
   limb(-7,-58,-12-front*3,-48,-10-front*5,-36,shade,5.4);ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(-10-front*5,-35,2.4,2,0,0,Math.PI*2);ctx.fill();
   limb(7,-58,12+front*3,-48,10+front*5,-36,main,5.4);ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(10+front*5,-35,2.4,2,0,0,Math.PI*2);ctx.fill();
 
   if(!nurse){ctx.strokeStyle='#20344f';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(-5,-61);ctx.quadraticCurveTo(0,-56,5,-61);ctx.stroke();ctx.beginPath();ctx.moveTo(-5,-60);ctx.bezierCurveTo(-9,-54,-8,-47,-4,-43);ctx.stroke();ctx.beginPath();ctx.moveTo(5,-60);ctx.bezierCurveTo(9,-54,9,-47,5,-43);ctx.stroke();ctx.fillStyle='#6b8daf';ctx.beginPath();ctx.arc(5,-43,1.7,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#777';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(-5,-42,3,0,Math.PI*2);ctx.stroke();}
-  else{ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(-5,-65);ctx.lineTo(0,-70);ctx.lineTo(5,-65);ctx.closePath();ctx.fill();ctx.strokeStyle='#e63946';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(0,-69);ctx.lineTo(0,-65);ctx.moveTo(-2,-67);ctx.lineTo(2,-67);ctx.stroke();}
+  else{ctx.fillStyle='#ffffff';ctx.beginPath();ctx.moveTo(-5,-65);ctx.lineTo(0,-70);ctx.lineTo(5,-65);ctx.closePath();ctx.fill();drawCrescent(ctx,1,-67,2.4,'#e63946','#fff');}
 
   ctx.fillStyle=skin;ctx.fillRect(-3,-66,6,5);ctx.beginPath();ctx.ellipse(4,-79,female?9:10.5,female?11:11.5,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=skin2;ctx.beginPath();ctx.ellipse(-5,-78,2,3,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=hair;
-  if(female){ctx.beginPath();ctx.moveTo(-7,-88);ctx.bezierCurveTo(-16,-79,-14,-62,-10,-48);ctx.bezierCurveTo(-6,-53,-5,-68,-1,-84);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(8,-88);ctx.bezierCurveTo(18,-80,16,-61,12,-47);ctx.bezierCurveTo(7,-54,7,-70,5,-85);ctx.closePath();ctx.fill();ctx.beginPath();ctx.ellipse(3,-89,12,6,0,Math.PI,Math.PI*2);ctx.fill();ctx.strokeStyle='#ffd86a';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(-9,-82);ctx.bezierCurveTo(-12,-72,-9,-62,-12,-54);ctx.moveTo(12,-82);ctx.bezierCurveTo(15,-72,11,-62,14,-54);ctx.stroke();}
+  if(femaleDoctor){ctx.beginPath();ctx.moveTo(-8,-87);ctx.bezierCurveTo(-15,-81,-13,-68,-8,-60);ctx.bezierCurveTo(-3,-64,-1,-76,0,-86);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(8,-87);ctx.bezierCurveTo(15,-80,13,-68,9,-60);ctx.bezierCurveTo(5,-65,5,-77,4,-86);ctx.closePath();ctx.fill();ctx.beginPath();ctx.ellipse(3,-89,12,6,0,Math.PI,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(0,-84,6,4,-0.25,0,Math.PI*2);ctx.fill();}
+  else if(female){ctx.beginPath();ctx.moveTo(-7,-88);ctx.bezierCurveTo(-15,-80,-13,-64,-9,-52);ctx.bezierCurveTo(-5,-58,-4,-72,-1,-84);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(8,-88);ctx.bezierCurveTo(17,-80,15,-64,11,-52);ctx.bezierCurveTo(7,-58,7,-72,5,-85);ctx.closePath();ctx.fill();ctx.beginPath();ctx.ellipse(3,-89,12,6,0,Math.PI,Math.PI*2);ctx.fill();}
   else{ctx.beginPath();ctx.ellipse(3,-88,12,7,0,Math.PI,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(-4,-82,6,6,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(9,-84,6,4,0.2,Math.PI,Math.PI*2);ctx.fill();}
-  if(nurse){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.ellipse(3,-91,10,3.5,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#e63946';ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(3,-93);ctx.lineTo(3,-89);ctx.moveTo(1,-91);ctx.lineTo(5,-91);ctx.stroke();}
+  if(nurse){ctx.fillStyle='#ffffff';ctx.beginPath();ctx.ellipse(3,-91,10,3.5,0,0,Math.PI*2);ctx.fill();drawCrescent(ctx,4,-91,2.2,'#e63946','#fff');}
 
   ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(1,-81,2.3,2.7,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(8,-81,2.5,2.7,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle=female?'#5a351a':'#3a2110';ctx.beginPath();ctx.arc(1.4,-81,1.1,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(8.4,-81,1.1,0,Math.PI*2);ctx.fill();
