@@ -355,7 +355,7 @@ function drawCrescent(g,x,y,r,col='#f4d35e',cut='#fff'){
 function drawAvatarPreviews(){
   document.querySelectorAll('[data-avatar-preview]').forEach(cv=>{
     const g=cv.getContext('2d'),av=cv.dataset.avatarPreview,female=av==='femaleDoctor'||av==='femaleNurse',nurse=av==='maleNurse'||av==='femaleNurse',femaleDoctor=av==='femaleDoctor';
-    g.clearRect(0,0,cv.width,cv.height);g.save();g.translate(22,51);g.scale(female?0.62:0.66,female?0.62:0.66);g.lineCap='round';g.lineJoin='round';
+    g.clearRect(0,0,cv.width,cv.height);g.save();g.translate(22,72);g.scale(female?0.72:0.75,female?0.72:0.75);g.lineCap='round';g.lineJoin='round';
     const skin=female?'#d79a73':'#c9855f',hair=femaleDoctor?'#151015':female?'#2a1712':'#2b1a12',main=nurse?'#23a6a8':'#f7f8fb',shade=nurse?'#157a86':'#dfe3ea',pants=nurse?'#12606a':'#234a84';
     g.strokeStyle=pants;g.lineWidth=6;g.beginPath();g.moveTo(-4,-28);g.lineTo(-6,-12);g.lineTo(-8,0);g.moveTo(4,-28);g.lineTo(6,-12);g.lineTo(8,0);g.stroke();
     const suit=g.createLinearGradient(0,-63,0,-28);suit.addColorStop(0,main);suit.addColorStop(1,shade);g.fillStyle=suit;g.beginPath();g.moveTo(-10,-29);g.lineTo(10,-29);g.quadraticCurveTo(12,-45,8,-62);g.lineTo(-8,-62);g.quadraticCurveTo(-12,-45,-10,-29);g.closePath();g.fill();
