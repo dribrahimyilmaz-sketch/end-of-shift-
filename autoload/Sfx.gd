@@ -18,7 +18,7 @@ func _ready() -> void:
 		add_child(p)
 		_pool.append(p)
 	_music = AudioStreamPlayer.new()
-	_music.volume_db = -12.0  # calm / in the background
+	_music.volume_db = -26.0  # quiet background, sits under the game SFX
 	_music.bus = "Master"
 	add_child(_music)
 	for path in MUSIC_PATHS:
