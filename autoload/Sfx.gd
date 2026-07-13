@@ -51,9 +51,9 @@ func vibrate(ms: int) -> void:
 		Input.vibrate_handheld(ms)
 
 
-func tick() -> void: vibrate(12)          # any button press
-func buzz_perfect() -> void: vibrate(28)  # perfect landing
-func buzz_die() -> void: vibrate(160)     # death / falling off
+func tick() -> void: vibrate(25)          # any button press
+func buzz_perfect() -> void: vibrate(45)  # perfect landing
+func buzz_die() -> void: vibrate(220)     # death / falling off
 
 
 func _tone(freq: float, type: String, dur: float, vol: float) -> AudioStreamWAV:
