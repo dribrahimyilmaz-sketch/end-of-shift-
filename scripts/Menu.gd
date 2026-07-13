@@ -112,6 +112,7 @@ func _button(text: String, fsize: int = 13, kind: String = "chip") -> Button:
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		b.add_theme_color_override(state, fg)
 	b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.3))
+	b.pressed.connect(Sfx.tick)  # light haptic tick on every button press
 	return b
 
 
@@ -382,6 +383,7 @@ func _refresh_badges() -> void:
 func _on_avatar_picked(av: String) -> void:
 	Meta.avatar = av
 	Meta.save()
+	Sfx.tick()
 	Sfx.score()
 	for icon in avatar_icons:
 		icon.set_selected(icon.avatar == av)

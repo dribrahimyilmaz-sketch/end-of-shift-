@@ -513,9 +513,11 @@ func _on_s(p: Vector2) -> void:
 	if confirm_exit:
 		var r := _exit_rects()
 		if (r[1] as Rect2).has_point(Vector2(cx2, cy2)):  # YES -> leave to menu
+			Sfx.tick()
 			confirm_exit = false
 			back_to_menu()
 		elif (r[2] as Rect2).has_point(Vector2(cx2, cy2)):  # NO -> resume
+			Sfx.tick()
 			confirm_exit = false
 		return
 	if show_leaderboard:
@@ -523,11 +525,13 @@ func _on_s(p: Vector2) -> void:
 		var bx := w / 2 - bw / 2
 		var by := h - 60.0
 		if cx2 > bx and cx2 < bx + bw and cy2 > by and cy2 < by + 36:
+			Sfx.tick()
 			show_leaderboard = false
 			if scn == "":
 				menu.open_menu()
 		return
 	if scn == "HOSPITAL" and cx2 > w - 50 and cx2 < w - 14 and cy2 > 54 and cy2 < 84:
+		Sfx.tick()
 		back_to_menu()
 		return
 	if scn == "HOSPITAL" and is_admin():
@@ -541,11 +545,13 @@ func _on_s(p: Vector2) -> void:
 			return
 	var re_x := 90.0 if w < 520 else 108.0
 	if scn == "GAME" and state != "GAME_OVER" and cx2 > re_x and cx2 < re_x + 30 and cy2 > 14 and cy2 < 44:
+		Sfx.tick()
 		start_game(admin_start_level)
 		return
 	# pause / exit button (just right of the restart button)
 	var pause_x := re_x + 34.0
 	if scn == "GAME" and state != "GAME_OVER" and cx2 > pause_x and cx2 < pause_x + 30 and cy2 > 14 and cy2 < 44:
+		Sfx.tick()
 		confirm_exit = true
 		return
 	if scn == "HOSPITAL":
@@ -560,11 +566,14 @@ func _on_s(p: Vector2) -> void:
 	if state == "GAME_OVER":
 		var oy := h / 2 - 150.0
 		if cx2 > w / 2 - 80 and cx2 < w / 2 + 80 and cy2 > oy + 178 and cy2 < oy + 214:
+			Sfx.tick()
 			open_leaderboard()
 			return
 		if cx2 > w / 2 - 90 and cx2 < w / 2 + 90 and cy2 > oy + 222 and cy2 < oy + 256:
+			Sfx.tick()
 			share_challenge()
 			return
+		Sfx.tick()
 		start_game()
 		return
 	if state == "BURST":

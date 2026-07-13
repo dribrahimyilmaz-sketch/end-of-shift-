@@ -18,7 +18,7 @@ func _ready() -> void:
 		add_child(p)
 		_pool.append(p)
 	_music = AudioStreamPlayer.new()
-	_music.volume_db = -26.0  # quiet background, sits under the game SFX
+	_music.volume_db = -32.0  # quiet background, sits well under the game SFX
 	_music.bus = "Master"
 	add_child(_music)
 	for path in MUSIC_PATHS:
@@ -43,6 +43,17 @@ func update_music() -> void:
 	else:
 		if _music.playing:
 			_music.stop()
+
+
+# --- Haptics: light vibration for game feel (Android / iOS / Web; no-op on desktop) ---
+func vibrate(ms: int) -> void:
+	if OS.has_feature("mobile") or OS.has_feature("web"):
+		Input.vibrate_handheld(ms)
+
+
+func tick() -> void: vibrate(12)          # any button press
+func buzz_perfect() -> void: vibrate(28)  # perfect landing
+func buzz_die() -> void: vibrate(160)     # death / falling off
 
 
 func _tone(freq: float, type: String, dur: float, vol: float) -> AudioStreamWAV:
@@ -92,11 +103,13 @@ func score() -> void: beep(520, "triangle", 0.1)
 
 
 func perfect() -> void:
+	buzz_perfect()
 	beep(660, "sine", 0.1, 0.3)
 	_delayed(0.08, 880, "sine", 0.15, 0.3)
 
 
 func fail() -> void:
+	buzz_die()
 	beep(200, "sawtooth", 0.15)
 	_delayed(0.12, 110, "sawtooth", 0.35)
 
