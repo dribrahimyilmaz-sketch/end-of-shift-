@@ -9,16 +9,11 @@ var _shot := false
 func _draw() -> void:
 	draw_rect(Rect2(0, 0, 900, 500), Color("#5a7ea0"))
 	var avatars := ["maleDoctor", "femaleDoctor", "maleNurse", "femaleNurse"]
-	for row in 4:
-		var y := 110.0 + row * 100
-		# ground line
-		draw_line(Vector2(0, y), Vector2(900, y), Color(0, 0, 0, 0.2), 1)
-		# standing (front)
-		DocDraw.character(self, Vector2(50, y), avatars[row], {"scale": 0.85})
-		# 6 phases of the walk cycle
-		for ph in 6:
-			var t := TAU * ph / 6.0
-			DocDraw.character(self, Vector2(160 + ph * 120, y), avatars[row], {"t": t, "scale": 0.85})
+	# big front + big side, zoomed for face/neck/beard inspection
+	for i in 4:
+		var x := 120.0 + i * 210
+		DocDraw.character(self, Vector2(x, 250), avatars[i], {"scale": 2.4})
+		DocDraw.character(self, Vector2(x + 90, 470), avatars[i], {"t": PI * 0.5, "scale": 2.0})
 
 
 func _process(_d: float) -> void:

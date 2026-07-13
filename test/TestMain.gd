@@ -32,7 +32,9 @@ func _run() -> void:
 	await _wait(1.0)
 	await _shot("hospital")
 	game._on_s(Vector2(400, 300))  # tap hospital -> walkout
-	await _wait(2.2)
+	await _wait(0.9)
+	await _shot("walkout")
+	await _wait(1.3)
 	print("[TEST] scene=", game.scn, " state=", game.state)
 	var avatars := ["maleDoctor", "femaleDoctor", "maleNurse", "femaleNurse"]
 	for i in 12:

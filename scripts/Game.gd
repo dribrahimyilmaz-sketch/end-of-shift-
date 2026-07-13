@@ -46,6 +46,7 @@ var ci := 0
 var pl := {"x": 0.0, "y": 0.0, "vy": 0.0}
 var floats: Array = []
 var elapsed := 0.0
+var anim_t := 0.0  # always-advancing clock for walk-cycle phase (works in cinematics too)
 var gtimer := 0.0
 var perf := false
 var lvl := 1
@@ -271,6 +272,7 @@ func _process(dt: float) -> void:
 	w = vs.x
 	h = vs.y
 	gr = floorf(h * 0.65)
+	anim_t += minf(dt, 0.1)
 	_update(minf(dt, 0.1))
 	queue_redraw()
 
@@ -925,7 +927,7 @@ func draw_stick() -> void:
 
 
 func draw_doc(cx: float, cy: float, walking: bool, dead: bool, extra_scale: float = 1.0) -> void:
-	var t := elapsed * (7.2 if w < 520 else 8.4) if walking else -1.0
+	var t := anim_t * (7.2 if w < 520 else 8.4) if walking else -1.0
 	DocDraw.character(self, Vector2(cx, cy), Meta.avatar, {
 		"t": t, "dead": dead, "scale": extra_scale,
 		"steth": Meta.active_item.get("steth", "default"),
