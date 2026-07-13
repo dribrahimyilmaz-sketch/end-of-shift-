@@ -1,0 +1,7 @@
+# Godot 4 cache/artifacts
+.godot/
+*.tmp
+
+# Export credentials (keystore passwords) — never commit
+export_credentials.cfg
+*.keystore
