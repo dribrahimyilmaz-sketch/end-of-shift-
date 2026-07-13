@@ -65,8 +65,7 @@ func _run() -> void:
 	game.burst_y = game.h - 24
 	game.burst_t = 0.0
 	await _wait(2.0)
-	print("[TEST] after burst: state=", game.state, " lives=", game.lives,
-		" death_msg_t=", game.death_msg_t)
+	print("[TEST] after burst: state=", game.state, " lives=", game.lives)
 	game.state = "GAME_OVER"
 	await _wait(0.5)
 	await _shot("gameover")
@@ -83,10 +82,9 @@ func _run() -> void:
 	game.show_leaderboard = false
 	game.scn = "GAME"
 	game.state = "WAITING"
-	game.death_msg = "Test line one\nTest line two"
-	game.death_msg_t = 2.4
 	Meta.active_item = {"steth": "goldSteth", "coat": "mintCoat", "bg": "nightGlow", "trail": "sparkTrail"}
 	game.state = "WALKING"
-	await _wait(1.0)
+	await _wait(0.6)
+	await _shot("walking")
 	print("[TEST] OK — all draw paths exercised")
 	get_tree().quit()

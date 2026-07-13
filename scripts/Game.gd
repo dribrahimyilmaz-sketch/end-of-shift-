@@ -20,12 +20,6 @@ const GND_HEX := {
 }
 const TLIST := ["morning", "noon", "dusk", "night", "dawn"]
 const WLIST := ["clear", "clear", "cloudy", "rainy", "snowy"]
-const DEATH_MSGS := [
-	"You left something\nin the ED. Go back!",
-	"You have a lecture.\nYou can't leave!",
-	"The attending is\ncalling you back...",
-	"Penalty shift\nhas been assigned!",
-]
 
 const GOLD := Color("#e9c46a")
 const GREEN := Color("#4ade80")
@@ -65,8 +59,6 @@ var rain: Array = []
 var snow: Array = []
 var gone := false
 var pressing := false
-var death_msg := ""
-var death_msg_t := 0.0
 var scene_t := 0.0
 var intro_doc_x := 0.0
 var burst_wx := 0.0
@@ -205,8 +197,6 @@ func start_game(start_lvl: int = 1) -> void:
 	lvl = clampi(start_lvl, 1, 99)
 	lp = 0
 	pc = 0
-	death_msg = ""
-	death_msg_t = 0.0
 	burst_t = 0.0
 	sky_a = TLIST[lvl % TLIST.size()]
 	sky_b = sky_a
@@ -480,15 +470,11 @@ func _update(dt: float) -> void:
 				stick_len = 0.0
 				stick_ang = 0.0
 				gone = false
-				death_msg = DEATH_MSGS[randi() % DEATH_MSGS.size()]
-				death_msg_t = 2.5
 				state = "WAITING"
 	for f in floats:
 		f["y"] -= 55 * dt
 		f["life"] -= dt
 	floats = floats.filter(func(f): return f["life"] > 0)
-	if death_msg_t > 0:
-		death_msg_t -= dt
 
 
 func _game_over_net() -> void:
@@ -714,7 +700,6 @@ func _draw() -> void:
 		var dx := scx(pl["x"]) + (-8.0 if state == "WAITING" or state == "GROWING" else 12.0)
 		draw_doc(dx, pl["y"] if state == "DEAD" else gr, state == "WALKING", state == "DEAD")
 	draw_hud()
-	draw_death_msg_box()
 	draw_hint()
 	draw_go()
 	draw_floats()  # after the game-over panel so "Challenge copied!" stays visible
@@ -1352,22 +1337,6 @@ func draw_burst() -> void:
 		var px := x + cos(a) * 32 * t
 		var py := y - 18 + sin(a) * 22 * t
 		draw_line(Vector2(px - 4, py - 4), Vector2(px + 5, py + 5), Color(Color("#111827"), ga), 4)
-
-
-func draw_death_msg_box() -> void:
-	if death_msg_t <= 0 or death_msg == "":
-		return
-	var alpha := minf(1.0, (2.5 - death_msg_t) * 4) if death_msg_t > 2 else minf(1.0, death_msg_t * 2)
-	var slide_x := (1 - (2.5 - death_msg_t) * 4) * (-w * 0.4) if death_msg_t > 2 else 0.0
-	var lines := death_msg.split("\n")
-	var bw := 320.0
-	var bh := lines.size() * 28 + 32.0
-	var bx := w / 2 - bw / 2 + slide_x
-	var by := h * 0.3
-	rrect(Rect2(bx, by, bw, bh), 14, Color(0.08, 0.04, 0.16, 0.88 * alpha))
-	rrect_line(Rect2(bx, by, bw, bh), 14, Color(GOLD, alpha), 2)
-	for i in lines.size():
-		txt_c(lines[i], bx + bw / 2, by + 40 + i * 26, 15, Color(1, 1, 1, alpha))
 
 
 func draw_leaderboard_full() -> void:
