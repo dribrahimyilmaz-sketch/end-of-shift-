@@ -2,6 +2,8 @@ extends Node2D
 ## End of Shift — GDScript port of the HTML5 canvas game.
 ## One node draws the whole game each frame (like the original canvas loop).
 
+const DocDraw := preload("res://scripts/DocDraw.gd")
+
 const SKIES_HEX := {
 	"dawn": ["#1a0533", "#6b2d6b", "#f4845f", "#ffd166"],
 	"morning": ["#3a7bd5", "#63b3ed", "#bee3f8", "#e8f4fd"],
@@ -938,100 +940,12 @@ func draw_stick() -> void:
 
 
 func draw_doc(cx: float, cy: float, walking: bool, dead: bool, extra_scale: float = 1.0) -> void:
-	var mobile := w < 520
-	var av := Meta.avatar
-	var female := av == "femaleDoctor" or av == "femaleNurse"
-	var nurse := av == "maleNurse" or av == "femaleNurse"
-	var female_doctor := av == "femaleDoctor"
-	var t := elapsed * (7.2 if mobile else 8.4) if walking else 0.0
-	var stride := sin(t) if walking else 0.0
-	var bob := absf(sin(t)) * 1.5 if walking else 0.0
-	var skin := Color("#d79a73") if female else Color("#c9855f")
-	var skin2 := Color("#b86b4d") if female else Color("#9a5538")
-	var hair: Color
-	if female_doctor: hair = Color("#151015")
-	elif female: hair = Color("#2a1712")
-	else: hair = Color("#2b1a12")
-	var main := Color("#23a6a8") if nurse else Color("#f7f8fb")
-	var shade := Color("#157a86") if nurse else Color("#dfe3ea")
-	if Meta.active_item.get("coat", "default") == "mintCoat":
-		main = Color("#dffbf1")
-		shade = Color("#7dd3c7")
-	var trim := Color("#ffffff") if nurse else Color("#c9ced8")
-	var pants := Color("#12606a") if nurse else Color("#234a84")
-	var steth := Color("#f4d35e") if Meta.active_item.get("steth", "default") == "goldSteth" else Color("#20344f")
-	var steth_disk := Color("#f6c453") if Meta.active_item.get("steth", "default") == "goldSteth" else Color("#6b8daf")
-	var sc := (0.92 if female else 1.0) * extra_scale
-	draw_set_transform(Vector2(cx, cy - bob), 0, Vector2(sc, sc))
-
-	var rear := -stride if walking else 0.0
-	var front := stride if walking else 0.0
-	# legs
-	qcurve(Vector2(2, -28), Vector2(4 + rear * 5, -15), Vector2(6 + rear * 7, 0), pants, 6.4)
-	ellipse(Vector2(9 + rear * 7, 0), 6, 2.8, Color("#101014"))
-	qcurve(Vector2(-4, -28), Vector2(-6 + front * 5, -15), Vector2(-8 + front * 7, 0), pants, 6.8)
-	ellipse(Vector2(-5 + front * 7, 0), 6.5, 3, Color("#050508"))
-	# torso
-	draw_polygon(PackedVector2Array([Vector2(-10, -29), Vector2(10, -29), Vector2(11, -45), Vector2(8, -62), Vector2(-8, -62), Vector2(-11, -45)]),
-		PackedColorArray([shade, shade, main.lerp(shade, 0.5), main, main, main.lerp(shade, 0.5)]))
-	draw_line(Vector2(0, -61), Vector2(0, -30), trim, 1.2)
-	draw_line(Vector2(-7, -61), Vector2(0, -52), trim, 1.2)
-	draw_line(Vector2(0, -52), Vector2(7, -61), trim, 1.2)
-	if not nurse:
-		crescent(Vector2(5, -47), 3.8, Color("#f4d35e"), shade)
-	# arms
-	qcurve(Vector2(-7, -58), Vector2(-12 - front * 3, -48), Vector2(-10 - front * 5, -36), shade, 5.4)
-	ellipse(Vector2(-10 - front * 5, -35), 2.4, 2, skin)
-	qcurve(Vector2(7, -58), Vector2(12 + front * 3, -48), Vector2(10 + front * 5, -36), main, 5.4)
-	ellipse(Vector2(10 + front * 5, -35), 2.4, 2, skin)
-	# stethoscope / nurse cap emblem
-	if not nurse:
-		qcurve(Vector2(-5, -61), Vector2(0, -56), Vector2(5, -61), steth, 1.8)
-		draw_polyline(bcurve(Vector2(-5, -60), Vector2(-9, -54), Vector2(-8, -47), Vector2(-4, -43)), steth, 1.8)
-		draw_polyline(bcurve(Vector2(5, -60), Vector2(9, -54), Vector2(9, -47), Vector2(5, -43)), steth, 1.8)
-		draw_circle(Vector2(5, -43), 1.7, steth_disk)
-		draw_arc(Vector2(-5, -42), 3, 0, TAU, 16, Color("#777777"), 1.3)
-	else:
-		draw_colored_polygon(PackedVector2Array([Vector2(-5, -65), Vector2(0, -70), Vector2(5, -65)]), Color.WHITE)
-		crescent(Vector2(1, -67), 2.4, RED, Color.WHITE)
-	# head (neck reaches up into the head ellipse so there is no gap)
-	draw_rect(Rect2(-1, -72, 6, 11), skin)
-	ellipse(Vector2(4, -79), 9 if female else 10.5, 11 if female else 11.5, skin)
-	ellipse(Vector2(-5, -78), 2, 3, skin2)
-	# hair
-	if female_doctor:
-		draw_colored_polygon(bcurve(Vector2(-9, -87), Vector2(-15, -80), Vector2(-13, -69), Vector2(-8, -60)), hair)
-		draw_colored_polygon(bcurve(Vector2(9, -87), Vector2(15, -80), Vector2(13, -69), Vector2(9, -60)), hair)
-		ellipse(Vector2(3, -89), 12, 6, hair)
-	elif female:
-		draw_colored_polygon(bcurve(Vector2(-7, -88), Vector2(-15, -80), Vector2(-13, -64), Vector2(-9, -52)), hair)
-		draw_colored_polygon(bcurve(Vector2(8, -88), Vector2(17, -80), Vector2(15, -64), Vector2(11, -52)), hair)
-		ellipse(Vector2(3, -89), 12, 6, hair)
-	else:
-		ellipse(Vector2(3, -88), 12, 7, hair)
-		draw_circle(Vector2(-4, -82), 6, hair)
-		ellipse(Vector2(9, -85), 6, 4, hair)
-	if nurse:
-		ellipse(Vector2(3, -91), 10, 3.5, Color.WHITE)
-		crescent(Vector2(4, -91), 2.2, RED, Color.WHITE)
-	# face
-	ellipse(Vector2(1, -81), 2.3, 2.7, Color.WHITE)
-	ellipse(Vector2(8, -81), 2.5, 2.7, Color.WHITE)
-	var iris := Color("#5a351a") if female else Color("#3a2110")
-	draw_circle(Vector2(1.4, -81), 1.1, iris)
-	draw_circle(Vector2(8.4, -81), 1.1, iris)
-	draw_circle(Vector2(0.8, -82), 0.35, Color.WHITE)
-	draw_circle(Vector2(7.8, -82), 0.35, Color.WHITE)
-	var brow := Color("#bf8a22") if female else Color("#2b1a12")
-	qcurve(Vector2(-1, -85), Vector2(2, -86), Vector2(4, -84), brow, 1)
-	qcurve(Vector2(6, -84), Vector2(9, -86), Vector2(11, -84), brow, 1)
-	draw_line(Vector2(6, -78), Vector2(7, -75), skin2, 1)
-	var mouth := Color("#7a1d1d") if dead else (Color("#d64f6f") if female else Color("#7a2e10"))
-	if dead:
-		draw_line(Vector2(3, -71), Vector2(8, -71), mouth, 1.3)
-	else:
-		qcurve(Vector2(2, -72), Vector2(5, -69.8), Vector2(8, -72), mouth, 1.3)
-	draw_set_transform_matrix(Transform2D())
+	var t := elapsed * (7.2 if w < 520 else 8.4) if walking else -1.0
+	DocDraw.character(self, Vector2(cx, cy), Meta.avatar, {
+		"t": t, "dead": dead, "scale": extra_scale,
+		"steth": Meta.active_item.get("steth", "default"),
+		"coat": Meta.active_item.get("coat", "default"),
+	})
 
 
 func draw_hospital(t: float) -> void:
@@ -1078,10 +992,18 @@ func draw_hospital(t: float) -> void:
 	var sh := bh * 0.5
 	var sy := gr - sh
 	draw_rect(Rect2(sx, sy, sw, sh), Color("#eaeae6"))
-	draw_rect(Rect2(sx + 8, sy + 8, sw - 16, sh * 0.26), Color(0.63, 0.78, 0.88, 0.6))
-	txt_l("ACİL", sx + 16, sy + sh * 0.48, 30, Color("#cc1122"))
-	txt_l("SERVİS", sx + 16, sy + sh * 0.48 + 24, 17, Color("#cc1122"))
-	txt_l("KOCAELİ ÜNİVERSİTESİ HASTANESİ", sx + 16, sy + sh * 0.48 + 42, 9, Color("#888888"))
+	var band_h := sh * 0.26
+	draw_rect(Rect2(sx + 8, sy + 8, sw - 16, band_h), Color(0.63, 0.78, 0.88, 0.6))
+	# "ACİL SERVİS" lives inside the blue band; hospital name right below it,
+	# both above the sliding door so nothing gets covered.
+	var acil_size := 20
+	while txt_w("ACİL SERVİS", acil_size) > sw - 70 and acil_size > 10:
+		acil_size -= 1
+	txt_l("ACİL SERVİS", sx + 16, sy + 8 + band_h * 0.7, acil_size, Color("#cc1122"))
+	var kou_size := 9
+	while txt_w("KOCAELİ ÜNİVERSİTESİ HASTANESİ", kou_size) > sw - 24 and kou_size > 6:
+		kou_size -= 1
+	txt_l("KOCAELİ ÜNİVERSİTESİ HASTANESİ", sx + 16, sy + 8 + band_h + 16, kou_size, Color("#777777"))
 	var hcx := sx + sw - 28
 	var hcy := sy + 24
 	draw_circle(Vector2(hcx, hcy), 16, RED)
@@ -1124,19 +1046,21 @@ func draw_hospital(t: float) -> void:
 	draw_circle(Vector2(ax + 136, ay + 52), 6, Color("#555555"))
 	draw_rect(Rect2(ax, ay, 18, 52), Color("#e0e0e0"))
 	draw_rect(Rect2(ax, ay, 18, 52), Color("#aaaaaa"), false, 1)
-	# stretcher + medics
-	var sed_x := ax - 72
-	var sed_y := gr - 16
-	draw_rect(Rect2(sed_x, sed_y - 12, 55, 10), Color("#c8c8c8"))
-	draw_rect(Rect2(sed_x, sed_y - 12, 55, 10), Color("#999999"), false, 1)
-	draw_line(Vector2(sed_x + 10, sed_y - 2), Vector2(sed_x + 10, sed_y + 10), Color("#888888"), 2)
-	draw_line(Vector2(sed_x + 45, sed_y - 2), Vector2(sed_x + 45, sed_y + 10), Color("#888888"), 2)
-	draw_rect(Rect2(sed_x + 3, sed_y - 20, 50, 8), Color("#4a90d9"))
-	draw_circle(Vector2(sed_x + 52, sed_y - 16), 5, Color("#fdbcb4"))
-	draw_rect(Rect2(sed_x - 14, sed_y - 32, 10, 22), Color("#3a8a5a"))
-	draw_circle(Vector2(sed_x - 9, sed_y - 36), 6, Color("#fdbcb4"))
-	draw_rect(Rect2(sed_x + 58, sed_y - 30, 10, 20), Color("#2a6a4a"))
-	draw_circle(Vector2(sed_x + 63, sed_y - 34), 6, Color("#fdbcb4"))
+	# stretcher with patient + two paramedics (shared character renderer)
+	var sed_x := ax - 78
+	var base_y := gr - 2.0
+	draw_line(Vector2(sed_x, base_y - 16), Vector2(sed_x + 56, base_y - 16), Color("#9aa0a6"), 2.5)
+	draw_line(Vector2(sed_x + 12, base_y - 15), Vector2(sed_x + 8, base_y - 2), Color("#8a9096"), 2)
+	draw_line(Vector2(sed_x + 44, base_y - 15), Vector2(sed_x + 48, base_y - 2), Color("#8a9096"), 2)
+	draw_circle(Vector2(sed_x + 8, base_y - 1), 2.6, Color("#2c2f33"))
+	draw_circle(Vector2(sed_x + 48, base_y - 1), 2.6, Color("#2c2f33"))
+	rrect(Rect2(sed_x + 1, base_y - 22, 54, 6), 3, Color("#e8ecef"))
+	rrect(Rect2(sed_x + 6, base_y - 27, 34, 7), 3, Color("#4a90d9"))
+	ellipse(Vector2(sed_x + 47, base_y - 24), 4.5, 2.2, Color("#f5f7f9"))
+	draw_circle(Vector2(sed_x + 46, base_y - 26), 3.6, Color("#e7b08c"))
+	ellipse(Vector2(sed_x + 46, base_y - 29), 3.4, 1.6, Color("#3a2416"))
+	DocDraw.character(self, Vector2(sed_x - 10, base_y), "maleNurse", {"scale": 0.52})
+	DocDraw.character(self, Vector2(sed_x + 66, base_y), "femaleNurse", {"scale": 0.52})
 	for tx in [w * 0.78, w * 0.87, w * 0.95]:
 		draw_rect(Rect2(tx - 2, gr - 32, 4, 32), Color("#5a3820"))
 		draw_circle(Vector2(tx, gr - 40), 11, Color("#4a8a40"))
