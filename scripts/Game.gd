@@ -67,6 +67,7 @@ var burst_y := 0.0
 var burst_t := 0.0
 var leaderboard: Array = []
 var show_leaderboard := false
+var confirm_exit := false  # in-game "exit to menu?" panel open
 var admin_start_level := 1
 
 var _skies := {}
@@ -112,6 +113,7 @@ func open_leaderboard() -> void:
 func back_to_menu() -> void:
 	scn = ""
 	pressing = false
+	confirm_exit = false
 	menu.open_menu()
 
 
@@ -178,6 +180,7 @@ func mk_snow() -> void:
 func start_game(start_lvl: int = 1) -> void:
 	Meta.reset_daily_if_needed()
 	refresh_leaderboard()
+	confirm_exit = false
 	scn = "HOSPITAL"
 	scene_t = 0.0
 	intro_doc_x = 0.0
@@ -280,6 +283,8 @@ func _process(dt: float) -> void:
 func _update(dt: float) -> void:
 	if scn == "":
 		return
+	if confirm_exit:
+		return  # frozen while the exit-confirm panel is open
 	if scn == "HOSPITAL":
 		scene_t += dt
 		return
@@ -505,6 +510,14 @@ func _unhandled_input(e: InputEvent) -> void:
 func _on_s(p: Vector2) -> void:
 	var cx2 := p.x
 	var cy2 := p.y
+	if confirm_exit:
+		var r := _exit_rects()
+		if (r[1] as Rect2).has_point(Vector2(cx2, cy2)):  # YES -> leave to menu
+			confirm_exit = false
+			back_to_menu()
+		elif (r[2] as Rect2).has_point(Vector2(cx2, cy2)):  # NO -> resume
+			confirm_exit = false
+		return
 	if show_leaderboard:
 		var bw := 140.0
 		var bx := w / 2 - bw / 2
@@ -529,6 +542,11 @@ func _on_s(p: Vector2) -> void:
 	var re_x := 90.0 if w < 520 else 108.0
 	if scn == "GAME" and state != "GAME_OVER" and cx2 > re_x and cx2 < re_x + 30 and cy2 > 14 and cy2 < 44:
 		start_game(admin_start_level)
+		return
+	# pause / exit button (just right of the restart button)
+	var pause_x := re_x + 34.0
+	if scn == "GAME" and state != "GAME_OVER" and cx2 > pause_x and cx2 < pause_x + 30 and cy2 > 14 and cy2 < 44:
+		confirm_exit = true
 		return
 	if scn == "HOSPITAL":
 		if is_admin() and lvl != admin_start_level:
@@ -705,6 +723,38 @@ func _draw() -> void:
 	draw_hint()
 	draw_go()
 	draw_floats()  # after the game-over panel so "Challenge copied!" stays visible
+	draw_confirm_exit()
+
+
+func _exit_rects() -> Array:
+	var pw := 264.0
+	var ph := 156.0
+	var ox := w / 2 - pw / 2
+	var oy := h / 2 - ph / 2
+	var bw := 104.0
+	var yes := Rect2(ox + 18, oy + ph - 54, bw, 40)
+	var no := Rect2(ox + pw - 18 - bw, oy + ph - 54, bw, 40)
+	return [Rect2(ox, oy, pw, ph), yes, no]
+
+
+func draw_confirm_exit() -> void:
+	if not confirm_exit:
+		return
+	draw_rect(Rect2(0, 0, w, h), Color(0.04, 0.03, 0.1, 0.82))
+	var r := _exit_rects()
+	var panel: Rect2 = r[0]
+	var yes: Rect2 = r[1]
+	var no: Rect2 = r[2]
+	rrect(panel, 18, Color(0.1, 0.08, 0.22, 0.98))
+	rrect_line(panel, 18, GOLD, 2)
+	txt_c("Exit game?", panel.position.x + panel.size.x / 2, panel.position.y + 40, 22, GOLD)
+	txt_c("Return to the main menu?", panel.position.x + panel.size.x / 2, panel.position.y + 68, 13, Color(1, 1, 1, 0.7))
+	rrect(yes, 12, Color(RED, 0.18))
+	rrect_line(yes, 12, Color(RED, 0.7), 1)
+	txt_c("Yes", yes.position.x + yes.size.x / 2, yes.position.y + 26, 15, Color("#ff8a94"))
+	rrect(no, 12, Color(GREEN, 0.16))
+	rrect_line(no, 12, Color(GREEN, 0.65), 1)
+	txt_c("No", no.position.x + no.size.x / 2, no.position.y + 26, 15, GREEN)
 
 
 func sky_cols() -> Array:
@@ -795,10 +845,13 @@ func draw_plats() -> void:
 		if p["last"] and i > ci:
 			var hx := x + pw / 2
 			var hy := gr - 6.0
-			draw_rect(Rect2(hx - 13, hy - 24, 26, 24), Color("#e07b39"))
-			draw_rect(Rect2(hx - 5, hy - 14, 10, 14), Color("#5c3317"))
-			draw_rect(Rect2(hx + 3, hy - 22, 7, 6), Color("#87ceeb"))
-			draw_colored_polygon(PackedVector2Array([Vector2(hx - 16, hy - 24), Vector2(hx, hy - 40), Vector2(hx + 16, hy - 24)]), Color("#c0392b"))
+			draw_rect(Rect2(hx - 19, hy - 34, 38, 34), Color("#e07b39"))
+			draw_colored_polygon(PackedVector2Array([Vector2(hx - 23, hy - 34), Vector2(hx, hy - 56), Vector2(hx + 23, hy - 34)]), Color("#c0392b"))
+			draw_rect(Rect2(hx - 15, hy - 33, 30, 5), Color.WHITE)
+			draw_rect(Rect2(hx - 7, hy - 20, 14, 20), Color("#5c3317"))
+			draw_circle(Vector2(hx + 4, hy - 10), 1.3, Color("#e9c46a"))
+			draw_rect(Rect2(hx + 5, hy - 31, 10, 9), Color("#87ceeb"))
+			draw_rect(Rect2(hx + 5, hy - 31, 10, 9), Color("#5c3317"), false, 1)
 	# gap decorations
 	var gc := gnd_cols()
 	var nightish := sky_a == "night" or sky_b == "night"
@@ -1097,15 +1150,15 @@ func draw_house_in(t: float) -> void:
 	var p: Dictionary = plats[ci]
 	var hx: float = scx(p["x"]) + p["w"] / 2
 	draw_set_transform(Vector2(hx, gr - 6), 0, Vector2.ONE)
-	draw_rect(Rect2(-15, -26, 30, 26), Color("#e07b39"))
+	draw_rect(Rect2(-22, -40, 44, 40), Color("#e07b39"))
 	var dop := minf(1.0, t * 1.2)
-	draw_rect(Rect2(-5, -16, 10, 16), Color("#050510"))
-	draw_rect(Rect2(-5, -16, 10 * (1 - dop), 16), Color("#3a1f0e"))
-	draw_rect(Rect2(4, -24, 7, 6), Color("#87ceeb"))
-	draw_rect(Rect2(4, -24, 7, 6), Color("#5c3317"), false, 1)
-	draw_colored_polygon(PackedVector2Array([Vector2(-18, -26), Vector2(0, -42), Vector2(18, -26)]), Color("#c0392b"))
-	draw_rect(Rect2(-12, -22, 24, 6), Color.WHITE)
-	txt_c("HOME", 0, -17, 5, Color("#1565c0"))
+	draw_rect(Rect2(-7, -24, 14, 24), Color("#050510"))
+	draw_rect(Rect2(-7, -24, 14 * (1 - dop), 24), Color("#3a1f0e"))
+	draw_rect(Rect2(6, -36, 10, 9), Color("#87ceeb"))
+	draw_rect(Rect2(6, -36, 10, 9), Color("#5c3317"), false, 1)
+	draw_colored_polygon(PackedVector2Array([Vector2(-26, -40), Vector2(0, -62), Vector2(26, -40)]), Color("#c0392b"))
+	draw_rect(Rect2(-18, -39, 36, 6), Color.WHITE)
+	txt_c("HOME", 0, -25, 7, Color("#1565c0"))
 	draw_set_transform_matrix(Transform2D())
 	var walk_t := minf(1.0, t / 0.9)
 	var doc_x: float = intro_doc_x + (scx(p["x"]) + p["w"] / 2 - intro_doc_x) * walk_t
@@ -1208,6 +1261,12 @@ func draw_hud() -> void:
 		# restart arrow
 		draw_arc(Vector2(re_x + 15, 29), 8, -PI * 0.25, PI * 1.35, 16, Color(1, 1, 1, 0.86), 2)
 		draw_colored_polygon(PackedVector2Array([Vector2(re_x + 18, 20), Vector2(re_x + 25, 22), Vector2(re_x + 20, 27)]), Color(1, 1, 1, 0.86))
+		# pause / exit button (two bars)
+		var px := re_x + 34.0
+		rrect(Rect2(px, 14, 30, 30), 10, Color(0.03, 0.04, 0.08, 0.48))
+		rrect_line(Rect2(px, 14, 30, 30), 10, Color(1, 1, 1, 0.18), 1)
+		draw_rect(Rect2(px + 10, 21, 3.5, 16), Color(1, 1, 1, 0.86))
+		draw_rect(Rect2(px + 17, 21, 3.5, 16), Color(1, 1, 1, 0.86))
 	rrect(Rect2(w / 2 - 62, 14, 124, 40), 14, Color(0.03, 0.04, 0.08, 0.5))
 	rrect_line(Rect2(w / 2 - 62, 14, 124, 40), 14, Color(GREEN, 0.22), 1)
 	txt_c("LV %d" % lvl, w / 2, 30, 12, GREEN)

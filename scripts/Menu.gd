@@ -16,12 +16,14 @@ var room_status: Label
 var room_history: OptionButton
 var coin_label: Label
 var sound_btn: Button
+var music_btn: Button
 var tasks_box: VBoxContainer
 var market_grid: GridContainer
 var badge_box: VBoxContainer
 var avatar_icons: Array = []
 
 var dialog: ConfirmationDialog
+var confirm_overlay: Control
 var dlg_code: LineEdit
 var dlg_name: LineEdit
 var dlg_info: Label
@@ -51,6 +53,8 @@ func _draw() -> void:
 func open_menu() -> void:
 	refresh_ui()
 	visible = true
+	if confirm_overlay:
+		confirm_overlay.visible = false
 	name_field.text = Meta.player_name
 	queue_redraw()
 
@@ -230,6 +234,9 @@ func _build() -> void:
 	sound_btn = _button("Sound ON", 12)
 	sound_btn.pressed.connect(_toggle_sound)
 	wallet_row.add_child(sound_btn)
+	music_btn = _button("Music ON", 12)
+	music_btn.pressed.connect(_toggle_music)
+	wallet_row.add_child(music_btn)
 	outer.add_child(wallet_row)
 
 	# Daily tasks card
@@ -258,7 +265,15 @@ func _build() -> void:
 	bc[1].add_child(note)
 	outer.add_child(bc[0])
 
+	var exit_btn := _button("Exit Game", 13, "danger")
+	exit_btn.custom_minimum_size = Vector2(180, 40)
+	exit_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	exit_btn.pressed.connect(_confirm_exit)
+	outer.add_child(exit_btn)
+
 	outer.add_child(Control.new())  # bottom spacer
+
+	_build_confirm_overlay()
 
 	# Room dialog
 	dialog = ConfirmationDialog.new()
@@ -295,6 +310,7 @@ func refresh_ui() -> void:
 			room_history.select(i + 1)
 	coin_label.text = "Coins: %d" % Meta.coins
 	sound_btn.text = "Sound ON" if Meta.sound_on else "Sound OFF"
+	music_btn.text = "Music ON" if Meta.music_on else "Music OFF"
 	_refresh_tasks()
 	_refresh_market()
 	_refresh_badges()
@@ -375,6 +391,76 @@ func _toggle_sound() -> void:
 	Meta.sound_on = not Meta.sound_on
 	Meta.save()
 	refresh_ui()
+
+
+func _toggle_music() -> void:
+	Meta.music_on = not Meta.music_on
+	Meta.save()
+	Sfx.update_music()
+	refresh_ui()
+
+
+func _build_confirm_overlay() -> void:
+	confirm_overlay = Control.new()
+	confirm_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	confirm_overlay.mouse_filter = Control.MOUSE_FILTER_STOP  # block clicks behind
+	confirm_overlay.visible = false
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.04, 0.03, 0.1, 0.82)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	confirm_overlay.add_child(dim)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	confirm_overlay.add_child(center)
+
+	var card := PanelContainer.new()
+	var sb := _flat_style(Color(0.1, 0.08, 0.22, 0.98), 18, GOLD, 2)
+	sb.set_content_margin_all(22)
+	card.add_theme_stylebox_override("panel", sb)
+	card.custom_minimum_size = Vector2(300, 0)
+	center.add_child(card)
+
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	card.add_child(v)
+
+	var title := _label("Exit Game?", 24, GOLD)
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.5))
+	title.add_theme_constant_override("shadow_offset_y", 2)
+	v.add_child(title)
+	var msg := _label("Are you sure you want to quit?", 13, Color(1, 1, 1, 0.7))
+	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(msg)
+
+	v.add_child(_spacer(6))
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	var yes := _button("Yes", 15, "danger")
+	yes.custom_minimum_size = Vector2(112, 44)
+	yes.pressed.connect(func(): get_tree().quit())
+	var no := _button("No", 15, "primary")
+	no.custom_minimum_size = Vector2(112, 44)
+	no.pressed.connect(func(): confirm_overlay.visible = false)
+	row.add_child(yes)
+	row.add_child(no)
+	v.add_child(row)
+
+	add_child(confirm_overlay)
+
+
+func _spacer(px: int) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(0, px)
+	return c
+
+
+func _confirm_exit() -> void:
+	confirm_overlay.visible = true
+	confirm_overlay.move_to_front()
 
 
 func _submit() -> void:

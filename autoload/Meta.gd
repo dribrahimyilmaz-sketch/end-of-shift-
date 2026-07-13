@@ -21,6 +21,7 @@ const AVATARS := ["maleDoctor", "femaleDoctor", "maleNurse", "femaleNurse"]
 var player_name := ""
 var avatar := "maleDoctor"
 var sound_on := true
+var music_on := true
 var hi := 0
 var coins := 0
 var owned := {}
@@ -71,6 +72,7 @@ func load_save() -> void:
 	if not AVATARS.has(avatar):
 		avatar = "maleDoctor"
 	sound_on = bool(data.get("sound_on", true))
+	music_on = bool(data.get("music_on", true))
 	hi = int(data.get("hi", 0))
 	coins = int(data.get("coins", 0))
 	if typeof(data.get("owned")) == TYPE_DICTIONARY:
@@ -95,7 +97,7 @@ func save() -> void:
 	if f == null:
 		return
 	f.store_string(JSON.stringify({
-		"name": player_name, "avatar": avatar, "sound_on": sound_on, "hi": hi,
+		"name": player_name, "avatar": avatar, "sound_on": sound_on, "music_on": music_on, "hi": hi,
 		"coins": coins, "owned": owned, "active_item": active_item, "daily": daily,
 		"badges": badges, "rooms": rooms, "room": current_room, "session_id": session_id,
 	}))

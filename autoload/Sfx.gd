@@ -6,12 +6,43 @@ var _cache := {}
 var _pool: Array[AudioStreamPlayer] = []
 var _next := 0
 
+# Background music (optional file, dropped in by the user). First existing wins.
+const MUSIC_PATHS := ["res://audio/music.ogg", "res://audio/music.mp3", "res://audio/music.wav"]
+var _music: AudioStreamPlayer
+var _has_music := false
+
 
 func _ready() -> void:
 	for i in 8:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_pool.append(p)
+	_music = AudioStreamPlayer.new()
+	_music.volume_db = -12.0  # calm / in the background
+	_music.bus = "Master"
+	add_child(_music)
+	for path in MUSIC_PATHS:
+		if ResourceLoader.exists(path):
+			var stream := load(path)
+			if stream is AudioStream:
+				if "loop" in stream:
+					stream.loop = true
+				_music.stream = stream
+				_has_music = true
+				break
+	update_music()
+
+
+## Call whenever Meta.music_on changes (or on startup) to sync playback.
+func update_music() -> void:
+	if not _has_music:
+		return
+	if Meta.music_on:
+		if not _music.playing:
+			_music.play()
+	else:
+		if _music.playing:
+			_music.stop()
 
 
 func _tone(freq: float, type: String, dur: float, vol: float) -> AudioStreamWAV:

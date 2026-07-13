@@ -23,8 +23,8 @@ Sfx="*res://autoload/Sfx.gd"
 
 [display]
 
-window/size/viewport_width=540
-window/size/viewport_height=960
+window/size/viewport_width=470
+window/size/viewport_height=836
 window/size/window_width_override=432
 window/size/window_height_override=768
 window/stretch/mode="canvas_items"

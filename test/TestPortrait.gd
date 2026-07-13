@@ -27,6 +27,13 @@ func _run() -> void:
 	await _wait(0.4)
 	Meta.player_name = "nimet"
 	Meta.avatar = "maleDoctor"
+	game.menu.refresh_ui()
+	await _wait(0.2)
+	await _shot("menu")
+	game.menu._confirm_exit()
+	await _wait(0.2)
+	await _shot("menu_exit")
+	game.menu.confirm_overlay.visible = false
 	game.menu.visible = false
 	game.start_game(2)
 	game.scn = "GAME"
@@ -47,5 +54,16 @@ func _run() -> void:
 			guard += 1
 	await _wait(0.2)
 	await _shot("mid")
+	# exit-confirm panel
+	game.confirm_exit = true
+	await _wait(0.1)
+	await _shot("confirm")
+	game.confirm_exit = false
+	# big house: HOUSEIN cinematic centres the house on the current platform
+	game.scn = "HOUSEIN"
+	game.scene_t = 0.3
+	game.intro_doc_x = game.scx(game.plats[game.ci]["x"]) + 12
+	await _wait(0.1)
+	await _shot("house")
 	print("[PORTRAIT] OK")
 	get_tree().quit()
