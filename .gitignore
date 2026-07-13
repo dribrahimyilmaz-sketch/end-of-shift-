@@ -5,3 +5,10 @@
 # Export credentials (keystore passwords) — never commit
 export_credentials.cfg
 *.keystore
+
+# Exported binaries
+*.apk
+*.aab
+
+# Godot re-imports the exported web PNGs; that metadata is machine-local
+docs/*.import
