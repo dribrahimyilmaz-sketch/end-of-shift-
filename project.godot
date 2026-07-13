@@ -23,12 +23,13 @@ Sfx="*res://autoload/Sfx.gd"
 
 [display]
 
-window/size/viewport_width=800
-window/size/viewport_height=550
-window/size/mode=2
+window/size/viewport_width=540
+window/size/viewport_height=960
+window/size/window_width_override=432
+window/size/window_height_override=768
 window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
-window/handheld/orientation=4
+window/stretch/aspect="keep_width"
+window/handheld/orientation=1
 
 [input_devices]
 
